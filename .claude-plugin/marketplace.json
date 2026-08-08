@@ -1,0 +1,19 @@
+{
+  "name": "ruccess",
+  "owner": {
+    "name": "ruccess",
+    "url": "https://github.com/ruccess"
+  },
+  "metadata": {
+    "description": "ruccess skills marketplace",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "ruccess",
+      "source": "./",
+      "description": "Dev workflow skills: plan → build → ship",
+      "version": "0.1.0"
+    }
+  ]
+}
