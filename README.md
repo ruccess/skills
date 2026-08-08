@@ -4,8 +4,8 @@
 [![Claude Code Plugin](https://img.shields.io/badge/Claude_Code-plugin-d97757.svg)](https://docs.anthropic.com/en/docs/claude-code)
 [![Codex Compatible](https://img.shields.io/badge/Codex-compatible-black.svg)](#codex)
 
-개발 작업을 계획에서 draft PR까지 끌고 가는 에이전트 스킬 스위트다. 한국어 산출 품질 스킬을 함께 담는다.
-Agent skills that carry a dev task from plan to draft PR — with gates, not vibes. Korean writing-quality skills included.
+개발 작업을 계획에서 draft PR까지 끌고 가는 에이전트 스킬 스위트다. 산출물 품질 스킬을 함께 담는다.
+Agent skills that carry a dev task from plan to draft PR — with gates, not vibes. Writing-quality skills included.
 
 ```mermaid
 flowchart LR
@@ -25,7 +25,7 @@ flowchart LR
 
 ### `/dev-plan` — 작업 시작
 
-코드보다 계획이 먼저다. 요구를 확정하고 작업 공간을 격리한 뒤 계획 문서를 남긴다. 프로젝트에 자체 작업 시작 스크립트가 있으면 그것을 따르고, 없으면 git worktree로 브랜치를 격리한다.
+코드보다 계획이 먼저다. 요구를 확정하고 작업 공간을 격리한 뒤 계획 문서를 남긴다. 프로젝트에 자체 작업 시작 스크립트가 있으면 그것을 따르고, 없으면 git worktree로 브랜치를 격리한다. 계획은 확정 전에 가정과 분기점을 따져 묻는 grill 단계를 거친다(grill-me·grill-with-docs 스킬이 있으면 사용).
 
 ### `/dev-build` — 구현
 
@@ -33,7 +33,7 @@ flowchart LR
 
 ### `/dev-ship` — 마무리와 draft PR
 
-여섯 단계를 순서대로 통과해야 PR이 나간다.
+일곱 단계를 순서대로 통과해야 PR이 나간다.
 
 | 단계 | 내용 | 게이트 |
 |---|---|---|
@@ -42,11 +42,12 @@ flowchart LR
 | 3 | 리뷰 | CRITICAL·HIGH 수정, MEDIUM 이하 보고 |
 | 4 | 문서 검수 | 한국어 문서가 있으면 korean-docs 파이프라인 진행 |
 | 5 | 검증 | 테스트·린트 실패 시 여기서 정지 |
-| 6 | draft PR | 생성 직전 요약 보고 후 `--draft`로 생성 |
+| 6 | 거버넌스 | 프로젝트의 체크리스트·리뷰 트리거·ADR 요건 확인 |
+| 7 | draft PR | 생성 직전 요약 보고 후 `--draft`로 생성 — draft만이 기본 |
 
-## 한국어 스킬
+## 산출물 품질 스킬
 
-AI가 쓴 한국어는 티가 난다 — 번역투, 이중 피동, 상투어. 두 스킬이 채팅과 문서를 각각 담당한다.
+AI가 쓴 글은 티가 난다 — 번역투, 이중 피동, 상투어. 두 스킬이 채팅과 문서를 각각 담당한다.
 
 ### `korean-chat` — 응답·메시지
 
