@@ -14,6 +14,10 @@ flowchart LR
     S["/dev-ship<br/>정리 → 리뷰 → 검증 → draft PR"]
     K["korean-docs<br/>한국어 문서 검수 파이프라인"]
     T["tidy<br/>코드 위생"]
+    BR["brainstorm<br/>아이디어 → 승인된 설계"]
+    G["grill<br/>계획 심문"]
+    BR --> P
+    G -.->|5단계 계획 심문| P
     P --> B --> S
     T -.->|build 마무리| B
     T -.->|2단계 코드 정리| S
@@ -26,9 +30,17 @@ flowchart LR
 
 ## 워크플로우 스킬
 
+### `brainstorm` — 아이디어를 승인된 설계로
+
+구현 행동 금지 게이트에서 시작한다 — 설계를 제시하고 승인받기 전에는 코드가 없다. 질문은 한 번에 하나씩(다지선다 선호), 접근 2~3개를 트레이드오프와 함께 제안하고, 승인된 설계를 짧은 문서로 남긴다. [obra/superpowers](https://github.com/obra/superpowers)의 brainstorming을 증류한 경량판이다.
+
 ### `/dev-plan` — 작업 시작
 
-코드보다 계획이 먼저다. 요구를 확정하고 작업 공간을 격리한 뒤 계획 문서를 남긴다. 프로젝트에 자체 작업 시작 스크립트가 있으면 그것을 따르고, 없으면 git worktree로 브랜치를 격리한다. 계획은 확정 전에 가정과 분기점을 따져 묻는 grill 단계를 거친다(grill-me·grill-with-docs 스킬이 있으면 사용).
+코드보다 계획이 먼저다. 요구를 확정하고 작업 공간을 격리한 뒤 계획 문서를 남긴다. 프로젝트에 자체 작업 시작 스크립트가 있으면 그것을 따르고, 없으면 git worktree로 브랜치를 격리한다. 아이디어가 아직 흐릿하면 brainstorm부터 시작하고, 계획 확정 전에는 grill로 심문한다.
+
+### `grill` — 계획 심문
+
+결정 트리의 모든 가지를 질문으로 하나씩 해소한다 — 각 질문에 추천 답을 붙이고, 코드가 답할 수 있는 건 묻지 않고 읽는다. 용어는 프로젝트 용어집(CONTEXT.md)과 대조하고, 해소된 결정은 바로 문서에 남긴다. ADR은 되돌리기 어렵고·맥락 없이 놀랍고·진짜 트레이드오프일 때만 작성한다. grill-with-docs를 증류한 경량판이다.
 
 ### `/dev-build` — 구현
 
@@ -98,14 +110,14 @@ claude plugin install korean-skills@korean-skills
 
 ```bash
 git clone https://github.com/ruccess/skills ~/ruccess-skills
-for s in dev-plan dev-build dev-ship korean-chat korean-docs tidy context-thrift; do
+for s in brainstorm dev-plan grill dev-build dev-ship korean-chat korean-docs tidy context-thrift; do
   ln -sf ~/ruccess-skills/skills/$s/SKILL.md ~/.codex/prompts/$s.md
 done
 ```
 
 ## 로드맵
 
-- **v0.4** — 한글 감지 리마인드 hook 동봉, 스킬별 테스트 시나리오 문서화(베이스라인 → 검증 재현 절차)
+- **v0.5** — 한글 감지 리마인드 hook 동봉, 스킬별 테스트 시나리오 문서화(베이스라인 → 검증 재현 절차), using-ruccess 라우터 스킬(상시 주입 없이 목록만으로 라우팅)
 - **v1.0** — 팀 공유용 안정판
 
 ## License
