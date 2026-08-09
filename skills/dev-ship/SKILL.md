@@ -10,7 +10,7 @@ description: Use when a task's implementation is complete and the work needs fin
 
 ## Steps (fixed order)
 1. **Survey changes**: `git diff <base>...HEAD` for the full change set; clean up uncommitted changes.
-2. **Cleanup**: behavior-preserving only — simplify, remove dead code, fix naming. No new features.
+2. **Cleanup**: run the `tidy` skill — behavior-preserving hygiene only (dead code, leftovers, file placement, naming). No new features.
 3. **Review**: run code review (language-specific reviewer agents in parallel when available). Fix CRITICAL and HIGH; report MEDIUM and below as a list.
 4. **Docs check**: if the diff contains Korean documents, run the `korean-docs` review pipeline (included in this suite).
 5. **Verify**: run the project's test and lint commands. On failure, stop here — no PR.

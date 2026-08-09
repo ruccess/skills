@@ -13,7 +13,10 @@ flowchart LR
     B["/dev-build<br/>TDD 구현 · 단계별 커밋"]
     S["/dev-ship<br/>정리 → 리뷰 → 검증 → draft PR"]
     K["korean-docs<br/>한국어 문서 검수 파이프라인"]
+    T["tidy<br/>코드 위생"]
     P --> B --> S
+    T -.->|build 마무리| B
+    T -.->|2단계 코드 정리| S
     K -.->|4단계 문서 검수| S
 ```
 
@@ -29,7 +32,7 @@ flowchart LR
 
 ### `/dev-build` — 구현
 
-계획 문서가 없으면 구현하지 않는다. TDD 루프(실패 테스트 → 최소 구현 → 리팩터)로 계획의 각 단계마다 커밋하고 검증한다. 계획에서 벗어나야 하면 멈추고 계획부터 갱신한다.
+계획 문서가 없으면 구현하지 않는다. TDD 루프(실패 테스트 → 최소 구현 → 리팩터)로 계획의 각 단계마다 커밋하고 검증한다. 계획에서 벗어나야 하면 멈추고 계획부터 갱신한다. 마무리는 tidy 스킬로 코드 위생을 정리하고 검증을 한 번 더 돌린다.
 
 ### `/dev-ship` — 마무리와 draft PR
 
@@ -38,7 +41,7 @@ flowchart LR
 | 단계 | 내용 | 게이트 |
 |---|---|---|
 | 1 | 변경 파악 | `git diff <base>...HEAD` 전체 확인 |
-| 2 | 코드 정리 | 동작 보존 정리만 — 기능 추가 금지 |
+| 2 | 코드 정리 | tidy 스킬 — 동작 보존 정리만, 기능 추가 금지 |
 | 3 | 리뷰 | CRITICAL·HIGH 수정, MEDIUM 이하 보고 |
 | 4 | 문서 검수 | 한국어 문서가 있으면 korean-docs 파이프라인 진행 |
 | 5 | 검증 | 테스트·린트 실패 시 여기서 정지 |
@@ -56,6 +59,16 @@ AI가 쓴 글은 티가 난다 — 번역투, 이중 피동, 상투어. 두 스�
 ### `korean-docs` — 문서 산출·검수
 
 문서는 완결 산문으로 쓴다. 커밋 전에는 [DaleSeo/korean-skills](https://github.com/DaleSeo/korean-skills)의 humanizer → grammar-checker를 서브에이전트 파이프라인으로 돌린다. `/dev-ship` 4단계가 이 스킬을 호출한다.
+
+### `tidy` — 코드 위생
+
+동작 보존 정리만 한다 — 데드코드, 디버그 잔재, 파일 위치, 네이밍 드리프트, 함수 크기. 기능 변경과 정리 커밋을 섞지 않는다(Tidy First). `/dev-build` 마무리와 `/dev-ship` 2단계가 호출한다.
+
+## 토큰 경제
+
+### `context-thrift` — 컨텍스트를 돈처럼 쓴다
+
+툴 호출 하나가 대화 전체를 다시 읽는다 — 비용 ≈ 호출 수 × 컨텍스트 크기. 독립 호출은 한 메시지에 배칭, 출력은 잘라서 수신, 기계적 탐색은 싼 모델 서브에이전트에 위임, 대기는 폴링 대신 백그라운드로. 실측 근거를 담았다: 855콜이 854메시지에 흩어진 세션(병렬도 1.00)은 왕복만으로 캐시 읽기 4억 토큰을 태웠다.
 
 ## 설계 원칙
 
@@ -85,14 +98,14 @@ claude plugin install korean-skills@korean-skills
 
 ```bash
 git clone https://github.com/ruccess/skills ~/ruccess-skills
-for s in dev-plan dev-build dev-ship korean-chat korean-docs; do
+for s in dev-plan dev-build dev-ship korean-chat korean-docs tidy context-thrift; do
   ln -sf ~/ruccess-skills/skills/$s/SKILL.md ~/.codex/prompts/$s.md
 done
 ```
 
 ## 로드맵
 
-- **v0.3** — 한글 감지 리마인드 hook 동봉, 스킬별 테스트 시나리오 문서화(베이스라인 → 검증 재현 절차)
+- **v0.4** — 한글 감지 리마인드 hook 동봉, 스킬별 테스트 시나리오 문서화(베이스라인 → 검증 재현 절차)
 - **v1.0** — 팀 공유용 안정판
 
 ## License
