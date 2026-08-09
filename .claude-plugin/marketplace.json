@@ -6,14 +6,27 @@
   },
   "metadata": {
     "description": "ruccess skills marketplace",
-    "version": "0.4.3"
+    "version": "0.4.4"
   },
   "plugins": [
     {
       "name": "ruccess",
       "source": "./",
       "description": "Dev workflow skills: plan → build → ship",
-      "version": "0.4.3"
+      "version": "0.4.4"
+    },
+    {
+      "name": "korean-skills",
+      "source": {
+        "source": "github",
+        "repo": "DaleSeo/korean-skills"
+      },
+      "description": "Korean writing review engine (humanizer, grammar-checker, style-guide) — used by ruccess korean-docs. External plugin by Dale Seo.",
+      "author": {
+        "name": "Dale Seo",
+        "url": "https://github.com/DaleSeo"
+      },
+      "homepage": "https://github.com/DaleSeo/korean-skills"
     }
   ]
 }

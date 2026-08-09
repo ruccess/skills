@@ -99,11 +99,10 @@ claude plugin marketplace add ruccess/skills
 claude plugin install ruccess@ruccess
 ```
 
-korean-docs의 검수 파이프라인은 [DaleSeo/korean-skills](https://github.com/DaleSeo/korean-skills) 플러그인을 함께 설치해야 동작한다.
+korean-docs의 검수 파이프라인은 [DaleSeo/korean-skills](https://github.com/DaleSeo/korean-skills) 플러그인이 필요하다. ruccess 마켓플레이스가 해당 저장소를 함께 참조하므로 별도 마켓플레이스 등록 없이 바로 설치할 수 있다.
 
 ```bash
-claude plugin marketplace add DaleSeo/korean-skills
-claude plugin install korean-skills@korean-skills
+claude plugin install korean-skills@ruccess
 ```
 
 ### Codex
