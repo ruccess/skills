@@ -15,9 +15,10 @@ Interview the user relentlessly until shared understanding: walk every branch of
 4. **Stress with scenarios**: invent concrete edge cases that force precise boundaries between concepts.
 5. **Cross-reference code**: when a claim contradicts what the code actually does, surface the contradiction immediately.
 6. **Persist decisions inline**: write resolved terms into CONTEXT.md as they happen — glossary only, no implementation detail. Offer an ADR only when the decision is hard to reverse AND surprising without context AND the result of a real trade-off; skip it if any of the three is missing.
+7. **Polish at the end**: if the session created or updated Korean documents (CONTEXT.md entries, ADRs, the plan itself), finish by running the `korean-docs` review pipeline over them.
 
 ## Done when
-Every branch is resolved and the plan reflects each decision. Called by `/dev-plan` step 5.
+Every branch is resolved, the plan reflects each decision, and touched Korean documents passed the korean-docs pipeline. Called by `/dev-plan` step 5.
 
 ---
 Distilled from the `grill-with-docs` skill.
