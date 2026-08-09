@@ -18,7 +18,7 @@ Tidying is separate from building. Never mix behavior changes with structural cl
 6. **Prove preservation**: re-run the project's tests after tidying. Same green as before — no more, no less.
 
 ## Commits
-Tidy commits stay separate from feature commits: `refactor:` or `chore:`, never bundled.
+Tidy commits stay separate from feature commits — never bundled. Use `refactor:` or `chore:` when the repository follows conventional commits; otherwise follow the target repository's own commit convention.
 
 ## Not tidy — report, don't do
 Bug fixes, performance changes, new abstractions "while we're at it", API or signature changes. List them for the user instead.
