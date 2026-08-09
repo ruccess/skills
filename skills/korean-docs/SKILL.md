@@ -17,11 +17,11 @@ Documents are complete prose — different from korean-chat's lead-plus-bullets 
 ## Review pipeline (before commit)
 Target: Korean .md deliverables others will read. Steps are order-dependent — run sequentially.
 
-1. **humanizer** — give a cheap subagent the file path and the `humanizer` skill from [DaleSeo/korean-skills](https://github.com/DaleSeo/korean-skills); if the change rate exceeds 30%, report instead of applying
+1. **humanizer** — apply the `humanizer` skill from [DaleSeo/korean-skills](https://github.com/DaleSeo/korean-skills) to the file. Delegate to a cheap-model subagent where your runtime supports subagents; otherwise run the review in the main context. If the change rate exceeds 30%, report instead of applying
 2. **grammar-checker** — spelling and spacing via korean-skills `grammar-checker`
 3. **style-guide** — only for long documents (300+ lines) or multi-author documents; skip by default
 
-The main context receives only a diff summary. Do not read the reference files in the main thread.
+When delegating, the main context receives only a diff summary — do not read the reference files in the main thread.
 
 Requires: the DaleSeo/korean-skills plugin (or a local checkout of that repository).
 
