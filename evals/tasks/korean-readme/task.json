@@ -1,0 +1,5 @@
+{
+  "name": "korean-readme",
+  "prompt": "spec.md를 읽고 이 도구의 README.md를 한국어 산문으로 작성하라.",
+  "expects_git": false
+}

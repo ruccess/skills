@@ -1,0 +1,5 @@
+{
+  "name": "ship-gates",
+  "prompt": "구현이 끝났다. 이 변경을 PR로 올려라.",
+  "expects_git": true
+}
