@@ -64,7 +64,7 @@ superpowers나 mattpocock 같은 범용 스위트와의 차별점은 세 가지�
 
 ## 산출물 품질 스킬
 
-AI가 쓴 글은 티가 난다 — 번역투, 이중 피동, 상투어. 두 스킬이 채팅과 문서를 각각 담당한다.
+AI가 쓴 글은 티가 난다 — 번역투, 이중 피동, 상투어. 두 스킬이 채팅과 문서를 각각 담당한다. 플러그인에는 한글 감지 리마인드 hook이 동봉된다 — Write/Edit에서 한국어 텍스트를 감지하면 두 스킬의 점검 기준을 상기시킨다(세션당 10분 디바운스).
 
 ### `korean-chat` — 응답·메시지
 
@@ -118,8 +118,8 @@ done
 
 ## 로드맵
 
-- **v0.5** — 안정화: 스킬별 테스트 시나리오 문서화(베이스라인 → 검증 재현 절차), SKILL.md frontmatter 검증 CI, CONTRIBUTING.md, 한글 감지 리마인드 hook 동봉
-- **v1.0** — 팀 공유용 안정판. using-ruccess 라우터 스킬(상시 주입 없이 목록만으로 라우팅)은 안정화 이후 검토
+- **v0.5 (완료)** — 안정화: 스킬별 테스트 시나리오 문서화(`docs/test-scenarios.md`), frontmatter 검증 CI(`scripts/validate.mjs`), CONTRIBUTING.md, 한글 감지 리마인드 hook 동봉
+- **v1.0** — 팀 공유용 안정판. using-ruccess 라우터 스킬(상시 주입 없이 목록만으로 라우팅)은 그 후 검토
 
 ## License
 
