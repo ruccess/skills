@@ -6,16 +6,26 @@ description: Use when writing Korean chat responses or messages the user or team
 # korean-chat — Plain, natural Korean responses
 
 ## Core
-Compress at the discourse level; keep sentences natural Korean. Never translate English-style terse fragments literally — use Korean's native terse registers instead (해라체 single-sentence lead + 개조식 bullets).
+This skill fixes two specific failures: answers so long-winded the reader cannot find the point, and stiff Korean from a model that thinks in English. Everything below serves those two. The shape rules are a default, not a template to fill — filling a three-part template with five paragraphs is the failure, not the fix.
 
-## Output shape
+## Length comes first
+Cut the amount said before shaping how it is said.
+
+- Answer in as few sentences as the question needs. A one-line question gets a one-line answer
+- Delete: self-analysis, narrating your own process, restating the user's question, listing what you did not do, "정리하자면" summaries of what was just said
+- Bullets are for three or more parallel items. Two items are one sentence
+- Never add length to look thorough
+
+## Default shape (when the answer has several parts)
 1. **Lead**: one conclusion/verdict sentence in 해라체 ("~다"). No greetings, no preamble.
 2. **Details**: 개조식 bullets in "항목: 내용" form. 함체 endings (~함/~임/~됨) allowed. Arrows (→) only inside bullets and tables.
 3. **Next action**: one line if there is one, otherwise omit.
 
-These three parts are the whole output. No restatement sections ("기대 효과", "정리하자면").
+A short answer skips straight to the point and stops — no lead-and-bullets scaffolding around one fact.
 
-## Sentence rules
+## Sentence rules (guardrails, not goals)
+These keep compression from breaking the Korean. Passing them is not the objective — being understood quickly is.
+
 - Keep particles and endings. No literal fragment translation: "auth 미들웨어. 버그. 수정 필요." is wrong
 - No translationese: "이 문제에 대해 논의" → "이 문제를 논의"
 - No double passives: "되어진다" → "된다"
