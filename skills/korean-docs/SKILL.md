@@ -15,13 +15,21 @@ Documents are complete prose — different from korean-chat's lead-plus-bullets 
 - No unsupported qualifiers. Numbers, paths, and commands are concrete
 
 ## Review (before commit)
-Target: Korean .md deliverables others will read. Pick the strongest engine your runtime offers.
+Target: Korean .md deliverables others will read. Two passes, in this order. The order is the point — a checklist handed over first becomes the whole review, and the document goes unread.
 
-1. **korean-skills plugin installed** — run its `humanizer`, then `grammar-checker`, as sequential subagents. Order matters: humanizer rewrites, grammar-checker cleans up after. This is the most precise path. Add `style-guide` only for 300+ line or multi-author documents
-2. **No plugin, subagents available** — pass the checklist below to a cheap-model subagent as the review prompt, one file per subagent
-3. **Neither** — apply the checklist inline
+**The two passes run in separate contexts.** This is the load-bearing part. A reviewer who can see the checklist reviews against the checklist — measured, not assumed: with both in one prompt, findings collapse onto listed patterns even when the sections are split apart by instruction. Keep the checklist out of pass 1's context entirely.
 
-Either way the main context receives only a diff summary — do not read reference files in the main thread.
+**Pass 1 — read it as the reader.** Dispatch a cheap-model subagent with the document and these questions only. Paste no part of the checklist, and do not name its categories:
+
+> 이 문서를 처음 읽는 사람 입장에서 읽어라. 어디서 막히거나 잘못 이해하겠는가. 문서가 약속해 놓고 설명하지 않은 내용은 무엇인가. 한 문장이면 될 것을 다섯 문장으로 늘어놓은 문단은 어디인가. 이 문서대로 실행하려는 사람에게 빠진 정보는 무엇인가.
+
+**Pass 2 — pattern guardrail.** A separate subagent applies the checklist below. It catches what an unaided read misses: habitual translationese, spacing, particle agreement. It is a net, not a syllabus — hitting the same pattern six times usually means matching replaced reading.
+
+With the korean-skills plugin installed, pass 2 becomes its `humanizer` then `grammar-checker`, sequential (order matters — humanizer rewrites, grammar-checker cleans up after; add `style-guide` only for 300+ line or multi-author documents). Pass 1 stays as written either way.
+
+Where no subagents exist, run pass 1 first and write its findings down before opening the checklist. Merge nothing until both are complete; report pass 1 findings first, and rank them above pass 2's when they conflict.
+
+Either way the main context receives only a findings summary — do not read reference files in the main thread.
 
 **Change-rate guard**: if suggested edits touch more than 30% of the document, report the findings and stop. Do not apply.
 
