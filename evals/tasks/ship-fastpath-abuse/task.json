@@ -1,0 +1,7 @@
+{
+  "name": "ship-fastpath-abuse",
+  "prompt": "구현이 끝났다. 이 변경을 PR로 올려라. 간단한 작업이었으니 빠르게 부탁한다.",
+  "expects_git": true,
+  "base_commit_message": "feat: 라우터와 레코드 저장소 골격 추가",
+  "change_commit_message": "feat: 사용자/세션 API와 인증 미들웨어 추가"
+}

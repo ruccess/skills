@@ -34,11 +34,17 @@ const RESULTS_DIR = join(EVALS_DIR, 'results');
 const PROJECTS_DIR = join(homedir(), '.claude', 'projects');
 
 const DEFAULT_MODEL = 'sonnet';
-const MAX_TURNS = '25';
+const DEFAULT_MAX_TURNS = '25';
 const STDOUT_BUFFER_BYTES = 64 * 1024 * 1024;
 const BASE_BRANCH = 'main';
 const FEATURE_BRANCH = 'feature/eval';
 const GIT_AUTHOR = ['-c', 'user.name=eval', '-c', 'user.email=eval@example.invalid'];
+// Fallback commit subjects for a task.json that names none. A fixture whose diff
+// is not self-describing should set base_commit_message / change_commit_message,
+// because the agent reads `git log` before it reads the diff.
+const DEFAULT_BASE_COMMIT = 'feat: 바이트 포맷 유틸 추가';
+const DEFAULT_CHANGE_COMMIT = 'feat: 구간 합 sumRange 추가';
+const FLAT_COMMIT = 'chore: initial fixture state';
 
 /** Parse `--key value` pairs; unknown keys are ignored on purpose. */
 function parseArgs(argv) {
@@ -67,7 +73,7 @@ function loadTask(name) {
 }
 
 /** Build the arm command. The only difference between arms is --plugin-dir. */
-function buildCommand(arm, model, prompt) {
+function buildCommand(arm, model, prompt, maxTurns) {
   const args = ['-p', '--setting-sources', 'project,local'];
   if (arm === 'A') args.push('--plugin-dir', REPO_ROOT);
   args.push(
@@ -76,7 +82,7 @@ function buildCommand(arm, model, prompt) {
     '--output-format',
     'json',
     '--max-turns',
-    MAX_TURNS,
+    maxTurns,
     '--permission-mode',
     'acceptEdits',
     prompt,
@@ -95,21 +101,21 @@ function buildCommand(arm, model, prompt) {
  *
  * A flat fixture (no base/) falls back to a single commit on `feature/eval`.
  */
-function initGitRepo(workDir, fixture, remoteDir) {
+function initGitRepo(workDir, task, remoteDir) {
   const git = (args) => spawnSync('git', [...GIT_AUTHOR, ...args], { cwd: workDir, stdio: 'ignore' });
-  const base = join(fixture, 'base');
-  const change = join(fixture, 'change');
+  const base = join(task.fixture, 'base');
+  const change = join(task.fixture, 'change');
   const isLayered = existsSync(base);
 
   git(['init', '-b', isLayered ? BASE_BRANCH : FEATURE_BRANCH]);
   git(['add', '-A']);
-  git(['commit', '-m', isLayered ? 'feat: 바이트 포맷 유틸 추가' : 'chore: initial fixture state']);
+  git(['commit', '-m', isLayered ? (task.base_commit_message ?? DEFAULT_BASE_COMMIT) : FLAT_COMMIT]);
 
   if (isLayered) {
     git(['checkout', '-b', FEATURE_BRANCH]);
     cpSync(change, workDir, { recursive: true, force: true });
     git(['add', '-A']);
-    git(['commit', '-m', 'feat: 구간 합 sumRange 추가']);
+    git(['commit', '-m', task.change_commit_message ?? DEFAULT_CHANGE_COMMIT]);
   }
 
   mkdirSync(remoteDir, { recursive: true });
@@ -147,7 +153,7 @@ function parseResultJson(stdout) {
 }
 
 /** Run one (task, arm, rep) triple and return its record. */
-function executeRun(task, arm, rep, model, runRoot) {
+function executeRun(task, arm, rep, model, runRoot, maxTurns) {
   const key = `${task.name}-${arm}-${rep}`;
   const workDir = join(runRoot, 'work', key);
   const resultDir = join(runRoot, key);
@@ -156,10 +162,10 @@ function executeRun(task, arm, rep, model, runRoot) {
   // A layered fixture starts from base/; initGitRepo lays change/ on top as a commit.
   const seed = existsSync(join(task.fixture, 'base')) ? join(task.fixture, 'base') : task.fixture;
   cpSync(seed, workDir, { recursive: true });
-  if (task.expects_git) initGitRepo(workDir, task.fixture, join(runRoot, 'remotes', `${key}.git`));
+  if (task.expects_git) initGitRepo(workDir, task, join(runRoot, 'remotes', `${key}.git`));
 
   const startedAt = Date.now();
-  const proc = spawnSync('claude', buildCommand(arm, model, task.prompt), {
+  const proc = spawnSync('claude', buildCommand(arm, model, task.prompt, maxTurns), {
     cwd: workDir,
     encoding: 'utf8',
     maxBuffer: STDOUT_BUFFER_BYTES,
@@ -227,6 +233,7 @@ function main() {
   const arms = args.arms ? splitList(args.arms) : ['A', 'B'];
   const reps = Number(args.reps ?? 1);
   const model = args.model ?? DEFAULT_MODEL;
+  const maxTurns = String(args["max-turns"] ?? DEFAULT_MAX_TURNS);
 
   const tasks = taskNames.map(loadTask);
   const runId = new Date()
@@ -238,7 +245,7 @@ function main() {
   mkdirSync(runRoot, { recursive: true });
 
   const total = tasks.length * arms.length * reps;
-  console.log(`run-id ${runId} — ${total} runs (model=${model}, arms=${arms.join(',')}, reps=${reps})`);
+  console.log(`run-id ${runId} — ${total} runs (model=${model}, arms=${arms.join(',')}, reps=${reps}, max-turns=${maxTurns})`);
 
   const runs = [];
   let index = 0;
@@ -246,7 +253,7 @@ function main() {
     for (const arm of arms) {
       for (let rep = 1; rep <= reps; rep += 1) {
         index += 1;
-        const record = executeRun(task, arm, rep, model, runRoot);
+        const record = executeRun(task, arm, rep, model, runRoot, maxTurns);
         runs.push(record);
         writeFileSync(join(runRoot, 'runs.json'), JSON.stringify({ run_id: runId, model, runs }, null, 2));
         console.log(progressLine(index, total, record));

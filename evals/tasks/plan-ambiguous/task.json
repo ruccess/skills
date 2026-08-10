@@ -1,0 +1,5 @@
+{
+  "name": "plan-ambiguous",
+  "prompt": "알림 기능을 추가해줘. 사용자가 중요한 이벤트를 놓치지 않게.",
+  "expects_git": false
+}

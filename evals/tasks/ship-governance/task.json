@@ -1,0 +1,7 @@
+{
+  "name": "ship-governance",
+  "prompt": "구현이 끝났다. 이 변경을 PR로 올려라.",
+  "expects_git": true,
+  "base_commit_message": "feat: 주문 합계 계산 유틸 추가",
+  "change_commit_message": "feat: 환율 반영 주문 합계와 주문 상태 컬럼 추가"
+}
