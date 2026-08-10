@@ -72,7 +72,7 @@ AI가 쓴 글은 티가 난다 — 번역투, 이중 피동, 상투어. 두 스�
 
 ### `korean-docs` — 문서 산출·검수
 
-문서는 완결 산문으로 쓴다. 커밋 전에는 [DaleSeo/korean-skills](https://github.com/DaleSeo/korean-skills)의 humanizer → grammar-checker를 서브에이전트 파이프라인으로 돌린다. `/dev-ship` 4단계가 이 스킬을 호출한다.
+문서는 완결 산문으로 쓴다. 커밋 전 검수는 스킬 본문에 담긴 체크리스트만으로 돌아간다 — 번역투·이중 피동·AI 상투어·맞춤법·띄어쓰기 항목을 싼 모델 서브에이전트에 넘기고 변경률이 30%를 넘으면 적용 대신 보고한다. [DaleSeo/korean-skills](https://github.com/DaleSeo/korean-skills) 플러그인을 설치하면 humanizer → grammar-checker 파이프라인이 체크리스트를 대신해 검수 정밀도를 올린다. `/dev-ship` 4단계가 이 스킬을 호출한다.
 
 ### `tidy` — 코드 위생
 
@@ -99,7 +99,7 @@ claude plugin marketplace add ruccess/skills
 claude plugin install ruccess@ruccess
 ```
 
-korean-docs의 검수 파이프라인은 [DaleSeo/korean-skills](https://github.com/DaleSeo/korean-skills) 플러그인이 필요하다. ruccess 마켓플레이스가 해당 저장소를 함께 참조하므로 별도 마켓플레이스 등록 없이 바로 설치할 수 있다.
+korean-docs의 검수는 스킬 자체 체크리스트만으로 동작한다. 더 정밀한 검수를 원하면 [DaleSeo/korean-skills](https://github.com/DaleSeo/korean-skills) 플러그인을 얹는다 — 선택 사항이다. ruccess 마켓플레이스가 해당 저장소를 함께 참조하므로 별도 마켓플레이스 등록 없이 바로 설치한다.
 
 ```bash
 claude plugin install korean-skills@ruccess
@@ -107,7 +107,7 @@ claude plugin install korean-skills@ruccess
 
 ### Codex
 
-스킬 본문은 런타임 중립 markdown이라 그대로 프롬프트로 사용한다. 단 korean-docs만 외부 플러그인(DaleSeo/korean-skills)의 검수 엔진이 필요하다 — Codex에서는 해당 저장소를 클론해 humanizer·grammar-checker 프롬프트를 함께 연결한다.
+스킬 본문은 런타임 중립 markdown이라 그대로 프롬프트로 사용한다. korean-docs의 검수 체크리스트도 본문에 들어 있어 외부 저장소를 클론하지 않고 아홉 스킬 전부 그대로 쓴다.
 
 ```bash
 git clone https://github.com/ruccess/skills ~/ruccess-skills
