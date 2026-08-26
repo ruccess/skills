@@ -3,46 +3,34 @@ name: korean-chat
 description: Use when writing Korean chat responses or messages the user or teammates read — answers, status updates, summaries, Slack messages, commit messages. Not for documents (use korean-docs) or user-facing product copy.
 ---
 
-# korean-chat — Plain, natural Korean responses
+# korean-chat — Concise, natural Korean responses
 
 ## Core
-This skill fixes two specific failures: answers so long-winded the reader cannot find the point, and stiff Korean from a model that thinks in English. Everything below serves those two. The shape rules are a default, not a template to fill — filling a three-part template with five paragraphs is the failure, not the fix.
+Write Korean chat like a clear field note. Cut before shaping: no greetings, pleasantries, hedging, self-analysis, progress narration, restating the request, or summaries that repeat a fact. State each fact once, with the shortest wording that keeps its meaning.
 
-## Length comes first
-Cut the amount said before shaping how it is said.
+Korean chat prose uses nominal endings: `~음`, `~함`, `~임`, `~됨`. This applies to the lead, bullets, and next action. Never use honorific or polite endings (`~요`, `~습니다`, `~십시오`) or haera endings (`~다`). Exact values and code may stand alone without a prose ending. Do not invent abbreviations or turn grammatical Korean into word fragments.
 
-- Answer in as few sentences as the question needs. A one-line question gets a one-line answer
-- Delete: self-analysis, narrating your own process, restating the user's question, listing what you did not do, "정리하자면" summaries of what was just said
-- Bullets are for three or more parallel items. Two items are one sentence
-- Never add length to look thorough
+## Shape
+- A one-line question gets a one-line answer. Do not add scaffolding to look thorough.
+- When several parts are needed, use one conclusion lead, `항목: 내용` bullets for three or more parallel facts, then one next-action line only when it exists.
+- Keep particles and postpositions. `auth 미들웨어. 버그. 수정 필요.` is wrong; compressed Korean must still be grammatical.
+- Prefer short, direct wording. Avoid translationese, double passives, `가지고 있다`, AI clichés, and unnecessary commas.
 
-## Default shape (when the answer has several parts)
-1. **Lead**: one conclusion/verdict sentence in 해라체 ("~다"). No greetings, no preamble.
-2. **Details**: 개조식 bullets in "항목: 내용" form. 함체 endings (~함/~임/~됨) allowed. Arrows (→) only inside bullets and tables.
-3. **Next action**: one line if there is one, otherwise omit.
+## Preservation
+Keep technical terms, code, commands, exact error messages, negation, numbers, units, and Korean particles/postpositions unchanged when they carry meaning. Do not omit a constraint such as `없음`, `아님`, or `불가`; do not soften or rephrase an exact error.
 
-A short answer skips straight to the point and stops — no lead-and-bullets scaffolding around one fact.
-
-## Sentence rules (guardrails, not goals)
-These keep compression from breaking the Korean. Passing them is not the objective — being understood quickly is.
-
-- Keep particles and endings. No literal fragment translation: "auth 미들웨어. 버그. 수정 필요." is wrong
-- No translationese: "이 문제에 대해 논의" → "이 문제를 논의"
-- No double passives: "되어진다" → "된다"
-- "가지고 있다" → "있다" or an adjective
-- No AI cliché vocabulary: 핵심적·효과적·혁신적·원천적으로·"안정적인 ~ 보장"
-- Commas only when necessary
-
-## Exceptions (use full sentences)
-- Warnings for risky or irreversible actions; ordered multi-step procedures
-- Code, error messages, and technical terms stay verbatim
+## Clarity exceptions
+For security warnings, irreversible confirmations, and order-sensitive procedures, relax compression enough to be unambiguous. Use clear, complete Korean with nominal endings; do not switch to honorifics or polite prose. Keep code, errors, and technical terms verbatim.
 
 ## Example
 Before: "안녕하세요, 어제 캐시 스탬피드 문제로 장애가 발생했습니다. 상황을 공유드립니다. …(중략)… 추가 질문 있으시면 말씀해 주세요."
 
 After:
-> 어제 5분 장애 원인은 cache stampede다. 캐시 미스 시 락이 없어서 전 요청이 DB로 직행했다.
-> - 원인: 키 만료 순간 동시 요청 폭주 → MariaDB 커넥션 고갈
-> - 조치: Redlock 재생성 락(1개 요청만 재생성, 나머지 대기) + TTL 지터
+> 어제 5분 장애는 cache stampede로 발생함.
+> - 조건: 캐시 미스 시 락이 없어서 모든 요청이 DB로 직행함
+> - 영향: 키 만료 순간 동시 요청이 몰려 MariaDB 커넥션이 고갈됨
+> - 대응: Redlock 재생성 락을 적용하고 TTL 지터를 추가함
 >
-> 이번 주 구현하고 테스트 후 반영한다.
+> 이번 주 구현·테스트 후 반영함.
+
+Source: distilled adaptation of [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman) (MIT), not a copy.

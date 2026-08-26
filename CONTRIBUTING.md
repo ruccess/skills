@@ -29,7 +29,7 @@ README의 세 원칙을 기여 판단 기준으로도 그대로 쓴다.
 
 **분량은 얇게 유지한다.** 지금 아홉 스킬은 전부 70줄 아래다(19~69줄). 새 내용을 넣을 때 70줄을 기준선으로 잡고 120줄을 상한으로 둔다. 상한에 닿으면 줄이거나 쪼갠다. 예시는 본문에 인라인으로 넣고 참조 파일을 새로 만들지 않는다.
 
-**증류한 스킬은 출처를 밝힌다.** 다른 스위트에서 가져온 스킬은 본문 끝에 한 줄 크레딧을 남기고 원본 라이선스를 지킨다. brainstorm은 [obra/superpowers](https://github.com/obra/superpowers)를, korean-docs 체크리스트는 [DaleSeo/korean-skills](https://github.com/DaleSeo/korean-skills)(MIT)를 그렇게 표기한다.
+**증류한 스킬은 출처를 밝힌다.** 다른 스위트에서 원칙을 증류해 적용한 스킬은 본문 끝에 한 줄 크레딧을 남기고 원본 라이선스를 지킨다. 이는 원문 복사가 아니다. brainstorm은 [obra/superpowers](https://github.com/obra/superpowers)를, korean-chat은 [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman)(MIT)을, korean-docs 체크리스트는 [DaleSeo/korean-skills](https://github.com/DaleSeo/korean-skills)(MIT)를 그렇게 표기한다.
 
 ## 스킬 TDD
 
