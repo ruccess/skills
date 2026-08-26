@@ -17,7 +17,8 @@ Documents are complete prose — different from korean-chat's lead-plus-bullets 
 - Natural Korean: Check grammatical correctness, natural word order, subject-predicate agreement, modifier proximity, particles, tense, and honorific consistency.
 - Terms: Replace English noun chains and long noun phrases with active Korean sentences that have verbs. Prefer concrete words over abstract or Hanja-heavy wording, define a technical term briefly on first use, then use it consistently.
 - Fidelity: Do not add unsupported qualifiers. Preserve exact numbers, units, paths, commands, code, and error messages.
-- Sentence rules are the same as korean-chat: avoid translationese (attach particles directly), double passives, "가지고 있다", AI cliché vocabulary (핵심적·효과적·혁신적·원천적으로), and unnecessary commas.
+- Language-quality checks shared with korean-chat cover translationese (attach particles directly), double passives, "가지고 있다", AI cliché vocabulary (핵심적·효과적·혁신적·원천적으로), and unnecessary commas.
+- These checks do not carry over korean-chat's nominal endings; documents use declarative "~한다/~이다" endings.
 - Formatter: Follow repository formatting and writing rules when they conflict with these rules, and record the exception in the review findings.
 
 ## Arrows
