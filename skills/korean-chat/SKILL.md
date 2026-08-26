@@ -18,6 +18,7 @@ Korean chat prose uses nominal endings: `~음`, `~함`, `~임`, `~됨`. This app
 
 ## Preservation
 Keep technical terms, code, commands, exact error messages, negation, numbers, units, and Korean particles/postpositions unchanged when they carry meaning. Do not omit a constraint such as `없음`, `아님`, or `불가`; do not soften or rephrase an exact error.
+Translate ordinary source-note prose or retain it, never both. Preserve an exact original only when it is code, an exact error, an identifier, or an explicitly requested literal.
 
 ## Clarity exceptions
 For security warnings, irreversible confirmations, and order-sensitive procedures, relax compression enough to be unambiguous. Use clear, complete Korean with nominal endings; do not switch to honorifics or polite prose. Keep code, errors, and technical terms verbatim.

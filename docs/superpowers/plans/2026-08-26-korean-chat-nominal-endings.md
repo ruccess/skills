@@ -15,7 +15,7 @@
 **Files:**
 - Modify: `skills/korean-chat/SKILL.md`
 - Modify: `hooks/korean-writing-reminder.js`
-- Evidence: `work/korean-chat-red.txt`, `work/korean-chat-green.txt`
+- Evidence: `../work/korean-chat-red.txt`, `../work/korean-chat-green.txt` — 세션 증거는 저장소 밖에 두며 커밋하지 않는다.
 
 - [ ] **Step 1: 현재 스킬의 실패를 재현한다**
 
@@ -23,10 +23,10 @@
 
 ```text
 어제 장애 원인 팀에 공유할 슬랙 메시지 써줘.
-영어 노트: cache stampede, no lock on miss, DB connection exhausted.
+원본 노트: `cache stampede`, `no lock on miss`, `5 min`, `320 DB connections exhausted`, `DB_CONNECTION_EXHAUSTED`.
 ```
 
-기대 RED는 결론이나 다음 행동이 `~다`로 끝나는 것이다. 결과와 종결 분석을 `work/korean-chat-red.txt`에 남긴다.
+확장 입력 RED는 `git show fb9563d:skills/korean-chat/SKILL.md`로 실행했다. 결과는 해라체 3회, 명사형 0회, 존댓말 0회이며, `cache stampede`, no-lock 부정 사실, `5 min`, `320 DB connections exhausted`, `DB_CONNECTION_EXHAUSTED`는 모두 보존했고 불릿은 0개다. 결과와 종결 분석은 저장소 밖의 세션 증거 `../work/korean-chat-red.txt`에 기록하며 커밋하지 않는다.
 
 - [ ] **Step 2: 한국어 Caveman 응답 계약을 작성한다**
 
@@ -38,7 +38,7 @@
 
 - [ ] **Step 4: 같은 입력으로 GREEN을 확인한다**
 
-수정한 스킬과 Step 1의 입력을 새 에이전트에 제공한다. 인사말·존댓말·해라체 종결이 0회이고, 명사형 종결과 기술 정보 세 항목이 유지되며, 불필요한 재진술이 없는지 분석해 `work/korean-chat-green.txt`에 남긴다.
+수정한 스킬과 Step 1의 입력을 새 에이전트에 제공한다. 인사말·존댓말·해라체 종결이 0회이고, 명사형 종결과 원본 노트의 정확 토큰·no-lock 부정 사실이 유지되며, 불필요한 재진술이 없는지 분석한다. 결과는 저장소 밖의 세션 증거 `../work/korean-chat-green.txt`에 남기며 커밋하지 않는다.
 
 ### Task 2: 설명 문서와 배포 버전 정합성 변경
 
