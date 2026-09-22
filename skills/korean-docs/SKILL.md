@@ -56,16 +56,16 @@ Either way the main context receives only a findings summary — do not read ref
 **Change-rate guard**: calculate `changed nonblank prose lines / total nonblank prose lines` from the original document's source lines before any proposed reflow, excluding code blocks, commands, and quotes. One original prose line remains one denominator line even when it contains multiple sentences. If the rate is greater than 30%, report the numerator, denominator, rate, and findings, then stop. Do not apply.
 
 ### Built-in checklist
-Translationese — fix every hit, these are the loudest AI markers:
+Translationese — inspect each candidate in context. Preserve uncertainty, modality, tense, and factual claims; grammatical wording is not an error merely because it matches a pattern:
 - 이중 피동 `되어진다 → 된다`, `보여진다 → 보인다`
 - 잉여 동사 `경쟁력을 가지고 있다 → 경쟁력이 강하다`
 - `~에 있어서` → `교육에 있어서 → 교육에서`
 - `~에 대해`, `~와 관련하여` → `이 문제에 대해 논의한다 → 이 문제를 논의한다`
 - `~를 통해`, `~에 기반하여` → `도구를 통해 측정한다 → 도구로 측정한다`
 - 영어식 피동 `~에 의해` → `AI에 의해 생성된 텍스트 → AI가 만든 텍스트`
-- 가능 표현 남발 `~할 수 있다` → `효율을 높일 수 있다 → 효율을 높인다`
+- Possibility and capability: preserve `효율을 높일 수 있다` when the improvement is possible or conditional; use `효율을 높인다` only when the source establishes that claim.
 - 목적절 남발 `~을 위해` → `성장을 위해 투자한다 → 성장에 투자한다`
-- 미래 단정 `~것이다` → `매출이 증가할 것이다 → 매출이 증가한다`
+- Predictions: preserve the future meaning of `매출이 증가할 것이다`; do not rewrite a forecast as an observed present fact. Confirmed schedules follow the Pass 2 rule above.
 - `~라는 점에서` → `빠르다는 점에서 효율적이다 → 빨라서 효율적이다`
 
 Vocabulary and structure:
