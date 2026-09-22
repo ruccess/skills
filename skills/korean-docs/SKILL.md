@@ -58,7 +58,7 @@ Either way the main context receives only a findings summary — do not read ref
 ### Built-in checklist
 Translationese — inspect each candidate in context. Preserve uncertainty, modality, tense, and factual claims; grammatical wording is not an error merely because it matches a pattern:
 - 이중 피동 `되어진다 → 된다`, `보여진다 → 보인다`
-- 잉여 동사 `경쟁력을 가지고 있다 → 경쟁력이 강하다`
+- 잉여 동사 `경쟁력을 가지고 있다 → 경쟁력이 있다` — do not add an unsupported degree such as `강하다`.
 - `~에 있어서` → `교육에 있어서 → 교육에서`
 - `~에 대해`, `~와 관련하여` → `이 문제에 대해 논의한다 → 이 문제를 논의한다`
 - `~를 통해`, `~에 기반하여` → `도구를 통해 측정한다 → 도구로 측정한다`
@@ -72,9 +72,9 @@ Vocabulary and structure:
 - AI 상투어 — cut or replace with the concrete fact: `혁신적인 솔루션 → 새 방식`
 - 복수형 `-들` 과다 — `많은 학생들이 새로운 기능들을 → 많은 학생이 새 기능을`
 - 지시관형사·대명사 반복 — `해당 기능을 쓰면 해당 결과를 → 이 기능을 쓰면 결과를`
-- AI 결말 — `결론적으로, ~시사하는 바가 크다` — delete the paragraph, the conclusion belongs at the top
+- AI conclusion framing: remove empty framing such as `결론적으로` or unsupported `시사하는 바가 크다`, while preserving unique facts, requirements, and exceptions in the paragraph. Delete a whole paragraph only when it contains no information beyond what is already retained.
 - `~적 N` 추상 체인 — `구조적 변화 → 구조의 변화`
-- 3박자 나열 — `빠르고, 효율적이며, 안전하다 → 빠르고 안전하다`
+- Three-part lists: `빠르고, 효율적이며, 안전하다 → 빠르고 효율적이며 안전하다`. Preserve distinct supported properties; remove an item only when it is redundant or unsupported, not to reduce the item count.
 - 불필요한 한자어 — `테스트를 실시한다 → 테스트한다`
 
 Punctuation:
