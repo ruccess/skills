@@ -58,9 +58,12 @@ PR을 열기 전에 검증 스크립트를 돌린다.
 
 ```bash
 node scripts/validate.mjs
+node --test evals/run.test.mjs evals/score.test.mjs
 ```
 
-frontmatter 형식과 매니페스트 일관성을 확인한다. CI에서도 같은 스크립트가 돈다.
+첫 명령은 frontmatter 형식과 매니페스트 일관성을 확인한다.
+두 번째 명령은 평가 실행 격리와 무효 실행 제외를 임시 fixture로 검증하며 Claude API를 호출하지 않는다.
+CI에서도 같은 검사를 실행한다.
 
 ## 버전과 커밋
 
