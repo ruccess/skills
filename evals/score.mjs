@@ -96,19 +96,50 @@ const PLAN_VERIFICATION = /npm\s+(?:run\s+)?test|node\s+--test|검증/;
 /** Directories a work-dir walk must not descend into. */
 const SKIP_DIRS = new Set(['.git', 'node_modules', '.claude']);
 
-/** Read a .jsonl file into an array of parsed objects, skipping malformed lines. */
+/** An assistant event with content this scorer can actually inspect. */
+function hasAssistantContent(entry) {
+  if (entry.type !== 'assistant') return false;
+  const content = entry.message?.content;
+  if (typeof content === 'string') return content.trim().length > 0;
+  if (!Array.isArray(content)) return false;
+  return content.some((block) => {
+    if (block?.type === 'text') return typeof block.text === 'string' && block.text.trim().length > 0;
+    if (block?.type === 'tool_use') {
+      return typeof block.name === 'string' && block.name.trim().length > 0
+        && block.input !== null && typeof block.input === 'object' && !Array.isArray(block.input);
+    }
+    return false;
+  });
+}
+
+/** Read a recorded transcript, preserving failures as a run status. */
 function readJsonl(path) {
-  if (!path || !existsSync(path)) return [];
-  const out = [];
-  for (const line of readFileSync(path, 'utf8').split('\n')) {
-    if (!line.trim()) continue;
+  if (!path || !existsSync(path)) return { entries: [], error: 'transcript_missing' };
+  let content;
+  try {
+    content = readFileSync(path, 'utf8');
+  } catch {
+    return { entries: [], error: 'transcript_unreadable' };
+  }
+  const lines = content.split('\n').filter((line) => line.trim());
+  if (lines.length === 0) return { entries: [], error: 'transcript_empty' };
+
+  const entries = [];
+  for (const line of lines) {
     try {
-      out.push(JSON.parse(line));
+      const entry = JSON.parse(line);
+      if (entry === null || typeof entry !== 'object' || Array.isArray(entry)) {
+        return { entries: [], error: 'transcript_malformed' };
+      }
+      entries.push(entry);
     } catch {
-      // A transcript can be truncated mid-write; a dropped line is not worth failing on.
+      return { entries: [], error: 'transcript_malformed' };
     }
   }
-  return out;
+  if (!entries.some(hasAssistantContent)) {
+    return { entries: [], error: 'transcript_no_assistant_content' };
+  }
+  return { entries, error: null };
 }
 
 /** Every assistant message content array in transcript order. */
@@ -371,7 +402,7 @@ const skillCell = (score) => (score?.skills?.length ? score.skills.join(', ') : 
 
 /** Render a markdown table from a header list and row arrays. */
 function table(headers, rows) {
-  if (rows.length === 0) return '해당 실행 없음.\n';
+  if (rows.length === 0) return '해당 항목 없음.\n';
   const head = `| ${headers.join(' | ')} |`;
   const rule = `| ${headers.map(() => '---').join(' | ')} |`;
   const body = rows.map((row) => `| ${row.join(' | ')} |`).join('\n');
@@ -591,7 +622,7 @@ function sectionBatching(records, scores) {
 /** Arm-averaged comparison across every task in the run. */
 function sectionComparison(runs, scoreByKey) {
   const arms = [...new Set(runs.map((record) => record.arm))].sort();
-  const of = (arm) => runs.filter((record) => record.arm === arm);
+  const of = (arm) => runs.filter((record) => record.arm === arm && scoreByKey.get(`${record.task}-${record.arm}-${record.rep}`)?.valid);
   const scored = (arm, task) =>
     of(arm)
       .filter((record) => record.task === task)
@@ -654,7 +685,17 @@ function main() {
   const { run_id: runId, model, runs } = JSON.parse(readFileSync(runsFile, 'utf8'));
   const scoreByKey = new Map();
   for (const record of runs) {
-    const entries = readJsonl(record.transcript);
+    const { entries, error } = readJsonl(record.transcript);
+    const invalidReasons = [];
+    if (record.exit_code !== 0) invalidReasons.push(`exit_code=${record.exit_code ?? 'null'}`);
+    if (record.is_error === true) invalidReasons.push('is_error=true');
+    if (record.parse_error != null) invalidReasons.push(`parse_error=${record.parse_error}`);
+    if (error) invalidReasons.push(error);
+    const key = `${record.task}-${record.arm}-${record.rep}`;
+    if (invalidReasons.length > 0) {
+      scoreByKey.set(key, { valid: false, invalid_reasons: invalidReasons });
+      continue;
+    }
     let score = null;
     if (record.task === 'korean-readme') score = scoreKoreanReadme(record);
     else if (record.task === 'ship-gates') score = scoreShipGates(record, entries);
@@ -662,19 +703,33 @@ function main() {
     else if (record.task === 'ship-fastpath-abuse') score = scoreShipFastpath(record, entries);
     else if (record.task === 'plan-ambiguous') score = scorePlanAmbiguous(record, entries);
     else if (record.task === 'batching') score = scoreBatching(entries);
-    if (score) score.skills = skillInvocations(entries);
-    scoreByKey.set(`${record.task}-${record.arm}-${record.rep}`, score);
+    if (!score) score = { valid: false, invalid_reasons: ['unsupported_task'] };
+    else {
+      score.valid = true;
+      score.skills = skillInvocations(entries);
+    }
+    scoreByKey.set(key, score);
   }
 
-  const pick = (task) => runs.filter((record) => record.task === task);
+  const pick = (task) => runs.filter((record) => record.task === task && scoreByKey.get(`${record.task}-${record.arm}-${record.rep}`)?.valid);
   const scoresFor = (records) => records.map((record) => scoreByKey.get(`${record.task}-${record.arm}-${record.rep}`));
+  const invalid = runs.filter((record) => scoreByKey.get(`${record.task}-${record.arm}-${record.rep}`)?.valid === false);
 
   const sections = [
     `# 평가 요약 — ${runId}`,
     '',
     `- 모델: ${model}`,
-    `- 실행 수: ${runs.length}`,
-    `- 전사 누락: ${runs.filter((record) => !record.transcript).length}건`,
+    `- 실행 수: ${runs.length} (유효: ${runs.length - invalid.length}, 무효: ${invalid.length})`,
+    '',
+    '## 무효 실행',
+    '',
+    table(['과제', 'arm', 'rep', '사유', '비용(USD)'], invalid.map((record) => [
+      record.task,
+      record.arm,
+      record.rep,
+      scoreByKey.get(`${record.task}-${record.arm}-${record.rep}`).invalid_reasons.join(', '),
+      cost(record),
+    ])),
     '',
   ];
 
