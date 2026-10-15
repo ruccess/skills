@@ -83,7 +83,9 @@ AI가 쓴 글은 티가 난다 — 번역투, 이중 피동, 상투어. 두 스�
 ### `korean-chat` — 응답·메시지
 
 답이나 바로 실행할 행동을 첫 줄에 두고, 절차는 번호로 나누며 병렬 사실은 불릿으로 쓴다.
-명사형 종결(`~음/~함/~임/~됨`)을 기본으로 하되, 사용자가 말투를 명시하면 그 요청을 따른다.
+일반 대화는 존댓말로 쓰며, 명사형 종결(`~음/~함/~임/~됨`)은 사용자가 요청하거나 해당 보고·메모의 형식으로 정해진 경우에 쓴다.
+의미와 근거, 독자에게 필요한 설명, 자연스러운 말투, 간결함 순으로 점검한다.
+짧은 질문이라도 낯선 개념에는 쉬운 설명과 구체적인 예시를 제공한다.
 [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman) 원칙을 증류해 인사·빈 헤징·재진술·예고성 설명을 제거하고 짧게 쓰되, 의미 있는 불확실성과 기술 용어·코드·정확한 오류·부정·수치·단위·조사는 보존한다.
 [ayghri/i-have-adhd](https://github.com/ayghri/i-have-adhd)의 원칙을 증류해 여러 단계 작업의 확인된 상태를 짧게 표시하고, 사용자 행동이 필요할 때 다음 행동 하나를 제시한다.
 목록은 한 묶음에 다섯 항목 이하를 권장하되 요청한 정보와 중요한 근거는 생략하지 않는다.
@@ -92,6 +94,7 @@ AI가 쓴 글은 티가 난다 — 번역투, 이중 피동, 상투어. 두 스�
 ### `korean-docs` — 문서 산출·검수
 
 문서는 사람이 읽기 쉬운 완결 산문으로 쓴다.
+독자의 배경지식에 맞춰 용어와 인과관계를 설명하며, 문체를 다듬다가 조건이나 주장 강도를 바꾸지 않는다.
 한 문단에는 주장 하나만 두고, 산문 문장은 한 문장씩 소스 줄에 둔다.
 빈 줄은 의미가 바뀔 때만 넣는다.
 정확한 수치·경로·명령어는 보존하면서 자연스럽고 정확한 한국어로 다듬는다.
@@ -103,7 +106,8 @@ Pass 1은 별도 검토 맥락에서 독자 관점으로 문서 구조와 훑어
 Pass 2에서는 자연스러운 한국어를 먼저 점검한 뒤 전체 패턴 체크리스트를 안전망으로 적용한다.
 [DaleSeo/korean-skills](https://github.com/DaleSeo/korean-skills) 플러그인의 humanizer → grammar-checker는 Pass 2만 대체하며 Pass 1은 유지한다.
 
-변경률이 30%를 넘으면 적용 대신 보고한다.
+기존 문서의 문체 교정은 원본 소스 줄 기준 변경률이 30%를 넘으면 비율을 보고하고, 해당 범위를 승인받지 않았다면 적용을 멈춘다.
+이미 승인된 재작성 범위와 새 문서 작성은 이 중단 조건에 해당하지 않는다.
 `/dev-ship` 4단계가 이 스킬을 호출한다.
 
 ### `tidy` — 코드 위생
@@ -149,12 +153,25 @@ claude plugin install korean-skills@ruccess
 
 ### Codex
 
-스킬 본문은 런타임 중립 markdown이라 그대로 프롬프트로 사용한다. korean-docs의 검수 체크리스트도 본문에 들어 있어 외부 저장소를 클론하지 않고 아홉 스킬 전부 그대로 쓴다.
+스킬 폴더를 `~/.agents/skills`에 연결하면 Codex가 `SKILL.md`를 발견한다.
+폴더 링크는 저장소의 현재 내용을 따르므로 복사본을 따로 갱신할 필요가 없다.
+저장소를 이동하거나 브랜치를 바꾸면 설치 내용에도 영향을 준다.
+아래 명령은 같은 이름의 설치 폴더나 링크가 없는 환경의 최초 설치용이다.
+모든 대상을 먼저 검사하고 충돌이 하나라도 있으면 링크 생성 전에 중단한다.
+기존 설치본의 교체와 복구는 [한국어 스킬 동기화 기록](evals/findings-2026-10-15.md#설치-동기화-방식)을 참고한다.
+설치 경로와 폴더 링크 지원은 [공식 스킬 안내](https://learn.chatgpt.com/docs/build-skills)를 따른다.
 
 ```bash
 git clone https://github.com/ruccess/skills ~/ruccess-skills
+mkdir -p ~/.agents/skills
 for s in brainstorm dev-plan grill dev-build dev-ship korean-chat korean-docs tidy context-thrift; do
-  ln -sf ~/ruccess-skills/skills/$s/SKILL.md ~/.codex/prompts/$s.md
+  if [ -e ~/.agents/skills/$s ] || [ -L ~/.agents/skills/$s ]; then
+    printf '기존 설치본을 먼저 백업하세요: %s\n' ~/.agents/skills/$s >&2
+    exit 1
+  fi
+done
+for s in brainstorm dev-plan grill dev-build dev-ship korean-chat korean-docs tidy context-thrift; do
+  ln -s ~/ruccess-skills/skills/$s ~/.agents/skills/$s
 done
 ```
 
