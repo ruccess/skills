@@ -682,7 +682,17 @@ function main() {
     process.exit(1);
   }
 
-  const { run_id: runId, model, runs } = JSON.parse(readFileSync(runsFile, 'utf8'));
+  const manifest = JSON.parse(readFileSync(runsFile, 'utf8'));
+  const { run_id: runId, model, runs } = manifest;
+  const hasCompletionMetadata = Object.hasOwn(manifest, 'expected_runs') || Object.hasOwn(manifest, 'complete');
+  if (hasCompletionMetadata && manifest.complete !== true) {
+    console.error(`incomplete runs manifest: ${runs.length} of ${manifest.expected_runs} runs recorded`);
+    process.exit(1);
+  }
+  if (hasCompletionMetadata && manifest.expected_runs !== runs.length) {
+    console.error(`runs manifest count mismatch: expected ${manifest.expected_runs}, found ${runs.length}`);
+    process.exit(1);
+  }
   const scoreByKey = new Map();
   for (const record of runs) {
     const { entries, error } = readJsonl(record.transcript);

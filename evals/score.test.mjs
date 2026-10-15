@@ -36,9 +36,13 @@ function fixture(t) {
     ...overrides,
   });
 
+  const invoke = (manifest) => {
+    writeFileSync(join(root, 'runs.json'), JSON.stringify(manifest));
+    return spawnSync(process.execPath, [scorer, root], { encoding: 'utf8' });
+  };
+
   const score = (runs) => {
-    writeFileSync(join(root, 'runs.json'), JSON.stringify({ run_id: 'fixture', model: 'test', runs }));
-    const proc = spawnSync(process.execPath, [scorer, root], { encoding: 'utf8' });
+    const proc = invoke({ run_id: 'fixture', model: 'test', runs });
     assert.equal(proc.status, 0, proc.stderr);
     return {
       summary: readFileSync(join(root, 'summary.md'), 'utf8'),
@@ -46,8 +50,51 @@ function fixture(t) {
     };
   };
 
-  return { root, transcript, record, score };
+  return { root, transcript, record, invoke, score };
 }
+
+test('incomplete manifest is refused before scoring', (t) => {
+  const { record, invoke } = fixture(t);
+  const proc = invoke({
+    run_id: 'fixture',
+    model: 'test',
+    expected_runs: 2,
+    complete: false,
+    runs: [record('A', 1)],
+  });
+
+  assert.notEqual(proc.status, 0);
+  assert.match(proc.stderr, /incomplete runs manifest.*1 of 2/i);
+});
+
+test('complete manifest with the expected run count is scored', (t) => {
+  const { root, record, invoke } = fixture(t);
+  const proc = invoke({
+    run_id: 'fixture',
+    model: 'test',
+    expected_runs: 1,
+    complete: true,
+    runs: [record('A', 1)],
+  });
+
+  assert.equal(proc.status, 0, proc.stderr);
+  const scores = JSON.parse(readFileSync(join(root, 'scores.json'), 'utf8'));
+  assert.equal(scores['ship-gates-A-1'].valid, true);
+});
+
+test('complete manifest with a mismatched run count is refused', (t) => {
+  const { record, invoke } = fixture(t);
+  const proc = invoke({
+    run_id: 'fixture',
+    model: 'test',
+    expected_runs: 2,
+    complete: true,
+    runs: [record('A', 1)],
+  });
+
+  assert.notEqual(proc.status, 0);
+  assert.match(proc.stderr, /runs manifest count mismatch.*expected 2.*found 1/i);
+});
 
 test('failed execution is classified and excluded from quality and cost averages', (t) => {
   const { record, score } = fixture(t);

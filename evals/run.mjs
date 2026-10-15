@@ -267,6 +267,11 @@ function main() {
   console.log(`run-id ${runId} — ${total} runs (model=${model}, arms=${arms.join(',')}, reps=${reps}, max-turns=${maxTurns})`);
 
   const runs = [];
+  const writeManifest = (complete) => writeFileSync(
+    join(runRoot, 'runs.json'),
+    JSON.stringify({ run_id: runId, model, expected_runs: total, complete, runs }, null, 2),
+  );
+  writeManifest(false);
   let index = 0;
   for (const task of tasks) {
     for (const arm of arms) {
@@ -274,7 +279,7 @@ function main() {
         index += 1;
         const record = executeRun(task, arm, rep, model, runRoot, maxTurns);
         runs.push(record);
-        writeFileSync(join(runRoot, 'runs.json'), JSON.stringify({ run_id: runId, model, runs }, null, 2));
+        writeManifest(runs.length === total);
         console.log(progressLine(index, total, record));
       }
     }

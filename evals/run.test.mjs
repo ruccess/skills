@@ -93,6 +93,8 @@ test('same-clock executions use separate clean work and result directories', (t)
   const records = results();
   assert.equal(records.length, 2);
   assert.equal(new Set(records.map((record) => record.run_id)).size, 2);
+  assert.deepEqual(records.map((record) => record.expected_runs), [1, 1]);
+  assert.deepEqual(records.map((record) => record.complete), [true, true]);
   assert.deepEqual(records.map((record) => record.runs[0].result), ['clean', 'clean']);
   assert.equal(new Set(records.map((record) => record.runs[0].work_dir)).size, 2);
   assert.equal(new Set(records.map((record) => record.runs[0].result_dir)).size, 2);
@@ -110,14 +112,21 @@ test('duplicate task or arm input fails before Claude runs', (t) => {
   assert.equal(existsSync(marker), false);
 });
 
-test('git failure aborts before Claude with command and stderr', (t) => {
-  const { run, marker } = harness(t, { failingGit: 'all' });
+test('git failure leaves an incomplete manifest before Claude runs', (t) => {
+  const { run, results, marker } = harness(t, { failingGit: 'all' });
   const proc = run();
   assert.notEqual(proc.status, 0);
   assert.match(proc.stderr, /git init/);
   assert.match(proc.stderr, /git unavailable/);
   assert.equal(proc.stderr.trim().split('\n').length, 1);
   assert.equal(existsSync(marker), false);
+  assert.deepEqual(results()[0], {
+    run_id: results()[0].run_id,
+    model: 'sonnet',
+    expected_runs: 1,
+    complete: false,
+    runs: [],
+  });
 });
 
 test('bare git initialization failure aborts before Claude', (t) => {
@@ -135,7 +144,10 @@ test('existing result directory is refused before the next repetition', (t) => {
   const proc = run(['--reps', '2']);
   assert.notEqual(proc.status, 0);
   assert.match(proc.stderr, /run directories already exist for sample-A-2/);
-  assert.equal(results()[0].runs.length, 1);
+  const manifest = results()[0];
+  assert.equal(manifest.expected_runs, 2);
+  assert.equal(manifest.complete, false);
+  assert.equal(manifest.runs.length, 1);
 });
 
 test('layered fixture creates main, feature branch, and origin refs', (t) => {
