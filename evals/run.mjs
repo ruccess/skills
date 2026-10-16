@@ -19,12 +19,13 @@ import {
   cpSync,
   existsSync,
   mkdirSync,
+  mkdtempSync,
   readdirSync,
   readFileSync,
   writeFileSync,
 } from 'node:fs';
 import { homedir } from 'node:os';
-import { dirname, join, resolve } from 'node:path';
+import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const EVALS_DIR = dirname(fileURLToPath(import.meta.url));
@@ -102,7 +103,13 @@ function buildCommand(arm, model, prompt, maxTurns) {
  * A flat fixture (no base/) falls back to a single commit on `feature/eval`.
  */
 function initGitRepo(workDir, task, remoteDir) {
-  const git = (args) => spawnSync('git', [...GIT_AUTHOR, ...args], { cwd: workDir, stdio: 'ignore' });
+  const git = (args) => {
+    const proc = spawnSync('git', [...GIT_AUTHOR, ...args], { cwd: workDir, encoding: 'utf8' });
+    if (proc.error || proc.status !== 0) {
+      const reason = proc.error?.message ?? proc.stderr?.trim().slice(-500) ?? `exit ${proc.status}`;
+      throw new Error(`git ${args.join(' ')} failed: ${reason || `exit ${proc.status}`}`);
+    }
+  };
   const base = join(task.fixture, 'base');
   const change = join(task.fixture, 'change');
   const isLayered = existsSync(base);
@@ -118,8 +125,9 @@ function initGitRepo(workDir, task, remoteDir) {
     git(['commit', '-m', task.change_commit_message ?? DEFAULT_CHANGE_COMMIT]);
   }
 
-  mkdirSync(remoteDir, { recursive: true });
-  spawnSync('git', ['init', '--bare', '-b', BASE_BRANCH, remoteDir], { stdio: 'ignore' });
+  mkdirSync(dirname(remoteDir), { recursive: true });
+  mkdirSync(remoteDir);
+  git(['init', '--bare', '-b', BASE_BRANCH, remoteDir]);
   git(['remote', 'add', 'origin', remoteDir]);
   git(['push', '-u', 'origin', ...(isLayered ? [BASE_BRANCH, FEATURE_BRANCH] : [FEATURE_BRANCH])]);
   git(['checkout', FEATURE_BRANCH]);
@@ -157,8 +165,12 @@ function executeRun(task, arm, rep, model, runRoot, maxTurns) {
   const key = `${task.name}-${arm}-${rep}`;
   const workDir = join(runRoot, 'work', key);
   const resultDir = join(runRoot, key);
-  mkdirSync(resultDir, { recursive: true });
+  if (existsSync(workDir) || existsSync(resultDir)) {
+    throw new Error(`run directories already exist for ${key}`);
+  }
+  mkdirSync(resultDir);
   mkdirSync(dirname(workDir), { recursive: true });
+  mkdirSync(workDir);
   // A layered fixture starts from base/; initGitRepo lays change/ on top as a commit.
   const seed = existsSync(join(task.fixture, 'base')) ? join(task.fixture, 'base') : task.fixture;
   cpSync(seed, workDir, { recursive: true });
@@ -235,19 +247,31 @@ function main() {
   const model = args.model ?? DEFAULT_MODEL;
   const maxTurns = String(args["max-turns"] ?? DEFAULT_MAX_TURNS);
 
+  for (const [label, values] of [['task', taskNames], ['arm', arms]]) {
+    if (new Set(values).size !== values.length) {
+      throw new Error(`duplicate ${label} in run selection`);
+    }
+  }
+
   const tasks = taskNames.map(loadTask);
-  const runId = new Date()
+  const timestamp = new Date()
     .toISOString()
     .replace(/[-:]/g, '')
     .replace('T', '-')
     .slice(0, 15);
-  const runRoot = join(RESULTS_DIR, runId);
-  mkdirSync(runRoot, { recursive: true });
+  mkdirSync(RESULTS_DIR, { recursive: true });
+  const runRoot = mkdtempSync(join(RESULTS_DIR, `${timestamp}-`));
+  const runId = basename(runRoot);
 
   const total = tasks.length * arms.length * reps;
   console.log(`run-id ${runId} — ${total} runs (model=${model}, arms=${arms.join(',')}, reps=${reps}, max-turns=${maxTurns})`);
 
   const runs = [];
+  const writeManifest = (complete) => writeFileSync(
+    join(runRoot, 'runs.json'),
+    JSON.stringify({ run_id: runId, model, expected_runs: total, complete, runs }, null, 2),
+  );
+  writeManifest(false);
   let index = 0;
   for (const task of tasks) {
     for (const arm of arms) {
@@ -255,7 +279,7 @@ function main() {
         index += 1;
         const record = executeRun(task, arm, rep, model, runRoot, maxTurns);
         runs.push(record);
-        writeFileSync(join(runRoot, 'runs.json'), JSON.stringify({ run_id: runId, model, runs }, null, 2));
+        writeManifest(runs.length === total);
         console.log(progressLine(index, total, record));
       }
     }
@@ -265,4 +289,9 @@ function main() {
   console.log(`score with: node evals/score.mjs evals/results/${runId}`);
 }
 
-main();
+try {
+  main();
+} catch (error) {
+  console.error(`eval run failed: ${error.message}`);
+  process.exitCode = 1;
+}

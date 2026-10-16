@@ -6,19 +6,20 @@ description: Use when producing or revising Korean documents others will read �
 # korean-docs — Korean document writing and review
 
 ## Core
-Documents are complete prose — different from korean-chat's lead-plus-bullets shape. Prioritize human readability and natural Korean, then review against the built-in checklist before commit. The korean-skills plugin is an optional precision upgrade, not a requirement.
+Prioritize meaning and evidence, the explanation the reader needs, natural Korean and appropriate register, then concision. Write complete prose and review it before commit. The korean-skills plugin is an optional precision upgrade, not a requirement.
 
 ## Writing rules
 - Structure: Put the conclusion or summary first and evidence and detail after. Use concrete noun-phrase headings that reveal the document's flow.
 - Paragraphs: State one claim per paragraph. Usually use two to four sentences, but use a shorter or longer paragraph when the claim needs it.
 - Source lines: In prose paragraphs and prose in list items, put each complete Markdown sentence on its own source line. Do not hard-wrap a sentence; add a blank line only when its meaning or topic changes. Tables, code blocks, commands, and quotes are exempt, subject to repository formatter precedence.
 - Forms: Use lists only for parallel items and tables for repeated-field comparisons. Reserve emphasis and callouts for decisions or warnings.
-- Style: Write complete declarative sentences ("~한다/~이다"). Use 개조식 only inside lists and tables.
+- Style: Default to complete declarative sentences ("~한다/~이다") for documents; follow an explicitly requested register or an established audience-specific format. Use 개조식 only inside lists and tables. Do not inherit a chat reply's register automatically.
+- Audience: Identify what the intended reader knows. Define an unfamiliar necessary term in familiar words on first use and connect it to a concrete example from the source. For causes, explain the conditions, sequence, and consequence; for decisions, explain the relevant trade-offs and limits. Do not invent an incident or a measured result to make an example vivid.
 - Natural Korean: Check grammatical correctness, natural word order, subject-predicate agreement, modifier proximity, particles, tense, and honorific consistency.
 - Terms: Replace English noun chains and long noun phrases with active Korean sentences that have verbs. Prefer concrete words over abstract or Hanja-heavy wording, define a technical term briefly on first use, then use it consistently.
 - Fidelity: Do not add unsupported qualifiers. Preserve exact numbers, units, paths, commands, code, and error messages.
-- Language-quality checks shared with korean-chat cover translationese (attach particles directly), double passives, "가지고 있다", AI cliché vocabulary (핵심적·효과적·혁신적·원천적으로), and unnecessary commas.
-- These checks do not carry over korean-chat's nominal endings; documents use declarative "~한다/~이다" endings.
+- Language-quality checks shared with korean-chat flag translationese (attach particles directly), double passives, "가지고 있다", AI cliché vocabulary (핵심적·효과적·혁신적·원천적으로), and unnecessary commas for contextual review. A matching word is not itself an error; preserve a grammatical expression that conveys necessary meaning.
+- Keep enough explanation for the reader to understand or act. Do not shorten away a prerequisite, reason, condition, exception, or distinct supported property to fit a line count or style pattern.
 - Formatter: Follow repository formatting and writing rules when they conflict with these rules, and record the exception in the review findings.
 
 ## Arrows
@@ -44,6 +45,7 @@ Target: Korean .md deliverables others will read. Two passes, in this order. The
 > 목록·표·화살표가 읽는 일을 실제로 줄이는가?
 > 문장보다 빨리 읽히는 짧은 선형 관계를 화살표 후보로 놓쳤거나, 분기·예외·반복을 화살표로 줄여 오해를 만들지는 않는가?
 > 이 문서대로 실행하려는 사람에게 빠진 정보는 무엇인가?
+> 독자의 배경지식에 맞게 낯선 용어와 원인·결과를 설명했는가?
 
 **Pass 2 — natural-language and pattern guardrail.** A separate subagent first checks natural Korean word order, subject-predicate agreement, modifier proximity, particles, tense, honorific consistency, terminology, and verb-bearing phrasing. For an approved or confirmed schedule, use direct tense (`금요일 오후 3시에 진행할 예정이다` → `금요일 오후 3시에 진행한다`) while preserving the exact time; retain future wording when execution or timing is undecided. It then audits the entire document against every checklist item below as a safety net. Do not rewrite by regex alone; read each proposed change in context. It catches what an unaided read misses: habitual translationese, spacing, particle agreement. It is a net, not a syllabus — hitting the same pattern six times usually means matching replaced reading.
 
@@ -53,28 +55,28 @@ Where no subagents exist, run pass 1 first and write its findings down before op
 
 Either way the main context receives only a findings summary — do not read reference files in the main thread.
 
-**Change-rate guard**: calculate `changed nonblank prose lines / total nonblank prose lines` from the original document's source lines before any proposed reflow, excluding code blocks, commands, and quotes. One original prose line remains one denominator line even when it contains multiple sentences. If the rate is greater than 30%, report the numerator, denominator, rate, and findings, then stop. Do not apply.
+**Change-rate guard**: for stylistic edits to an existing document, calculate `changed nonblank prose lines / total nonblank prose lines` from its original source lines before any proposed reflow, excluding code blocks, commands, and quotes. One original prose line remains one denominator line even when it contains multiple sentences. If the rate is greater than 30%, report the numerator, denominator, rate, and findings; do not apply unless the user already authorized that rewrite scope. New documents have no original denominator; report the guard as not applicable. This guard does not revoke an existing authorization.
 
 ### Built-in checklist
-Translationese — fix every hit, these are the loudest AI markers:
+Translationese — inspect each candidate in context. Preserve uncertainty, modality, tense, and factual claims; grammatical wording is not an error merely because it matches a pattern:
 - 이중 피동 `되어진다 → 된다`, `보여진다 → 보인다`
-- 잉여 동사 `경쟁력을 가지고 있다 → 경쟁력이 강하다`
+- 잉여 동사 `경쟁력을 가지고 있다 → 경쟁력이 있다` — do not add an unsupported degree such as `강하다`.
 - `~에 있어서` → `교육에 있어서 → 교육에서`
 - `~에 대해`, `~와 관련하여` → `이 문제에 대해 논의한다 → 이 문제를 논의한다`
 - `~를 통해`, `~에 기반하여` → `도구를 통해 측정한다 → 도구로 측정한다`
 - 영어식 피동 `~에 의해` → `AI에 의해 생성된 텍스트 → AI가 만든 텍스트`
-- 가능 표현 남발 `~할 수 있다` → `효율을 높일 수 있다 → 효율을 높인다`
+- Possibility and capability: preserve `효율을 높일 수 있다` when the improvement is possible or conditional; use `효율을 높인다` only when the source establishes that claim.
 - 목적절 남발 `~을 위해` → `성장을 위해 투자한다 → 성장에 투자한다`
-- 미래 단정 `~것이다` → `매출이 증가할 것이다 → 매출이 증가한다`
+- Predictions: preserve the future meaning of `매출이 증가할 것이다`; do not rewrite a forecast as an observed present fact. Confirmed schedules follow the Pass 2 rule above.
 - `~라는 점에서` → `빠르다는 점에서 효율적이다 → 빨라서 효율적이다`
 
 Vocabulary and structure:
 - AI 상투어 — cut or replace with the concrete fact: `혁신적인 솔루션 → 새 방식`
 - 복수형 `-들` 과다 — `많은 학생들이 새로운 기능들을 → 많은 학생이 새 기능을`
 - 지시관형사·대명사 반복 — `해당 기능을 쓰면 해당 결과를 → 이 기능을 쓰면 결과를`
-- AI 결말 — `결론적으로, ~시사하는 바가 크다` — delete the paragraph, the conclusion belongs at the top
+- AI conclusion framing: remove empty framing such as `결론적으로` or unsupported `시사하는 바가 크다`, while preserving unique facts, requirements, and exceptions in the paragraph. Delete a whole paragraph only when it contains no information beyond what is already retained.
 - `~적 N` 추상 체인 — `구조적 변화 → 구조의 변화`
-- 3박자 나열 — `빠르고, 효율적이며, 안전하다 → 빠르고 안전하다`
+- Three-part lists: `빠르고, 효율적이며, 안전하다 → 빠르고 효율적이며 안전하다`. Preserve distinct supported properties; remove an item only when it is redundant or unsupported, not to reduce the item count.
 - 불필요한 한자어 — `테스트를 실시한다 → 테스트한다`
 
 Punctuation:
@@ -94,6 +96,11 @@ Spelling, spacing, grammar:
 ## Exceptions
 - Code blocks, commands, quotes, and proper nouns stay verbatim
 - English documents are out of scope
+
+## Example — explanation for a non-developer
+Example source: tapping Save twice sends two requests and creates two orders because the server has no duplicate-request handling; checking the same request identifier is a proposed fix that is not implemented yet.
+
+> 앱에서 저장을 두 번 누르면 서버에 요청이 두 번 도착한다. 서버가 같은 요청인지 가려내지 못해 주문도 두 번 생성된다. 개선안은 같은 주문 요청에 같은 식별자를 붙이고, 서버가 이미 처리한 식별자인지 확인하는 방식이다. 이를 멱등성 처리라고 하며, 아직 구현하지 않았다.
 
 ---
 Checklist distilled from [DaleSeo/korean-skills](https://github.com/DaleSeo/korean-skills) (MIT).

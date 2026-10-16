@@ -1,15 +1,15 @@
 ---
 name: brainstorm
-description: Use before any creative work — a new feature, component, or behavior change — while the idea is still fuzzy and no design has been agreed. Also when a request bundles multiple independent subsystems.
+description: Use when a feature or behavior change has unresolved requirements or design choices. Do not invoke for an already approved design or a concrete change with no material ambiguity.
 ---
 
 # brainstorm — Idea to approved design
 
 ## Hard gate
-No implementation action — no code, no scaffolding, no implementation skill — until a design has been presented and the user has approved it. "Too simple to need a design" is the trap: simple projects are where unexamined assumptions waste the most work. A simple project just gets a short design.
+While material requirements or design choices remain unresolved, do not implement or scaffold. Resolve those choices and obtain approval for the resulting design. Existing approval remains valid: inspect the agreed design and proceed within its scope without asking for approval again. A small change needs questions only when an unresolved choice affects correctness or the user's intent.
 
 ## Process
-1. **Scope check first**: if the request bundles multiple independent subsystems, decompose before refining details — then brainstorm only the first sub-project.
+1. **Scope check first**: if the request bundles multiple independent subsystems, identify their boundaries and dependencies, then refine unresolved choices without dropping any requested subsystem.
 2. **Explore context**: files, docs, recent commits. Never ask what the codebase can answer.
 3. **One question at a time**: purpose, constraints, success criteria. Prefer multiple choice. Never dump a questionnaire.
 4. **Propose 2–3 approaches**: with trade-offs and your recommendation.
