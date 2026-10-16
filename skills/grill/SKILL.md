@@ -6,21 +6,20 @@ description: Use when a plan or design needs stress-testing before it is finaliz
 # grill — Interrogate the plan
 
 ## Core
-Interview the user relentlessly until shared understanding: walk every branch of the decision tree, one question at a time, each question carrying your recommended answer. Stop only when no unresolved branch remains.
+Stress-test a proposed plan or design for material correctness, boundary, dependency, and failure-mode risks before it is finalized. Preserve settled decisions unless evidence contradicts them. This is a focused design review, not open-ended joint exploration or a requirement to force every possible decision; use `thinker` to explain together, explore hypotheses and alternatives, or end with questions still open.
 
-**Scale to the change**: for a small, low-risk change (single file, tens of lines), resolve only the one or two branches that carry real risk — do not walk the full tree.
+**Scale to the change**: a small, low-risk change may need no grill. When invoked, examine only the branches that carry real risk.
 
 ## Rules
-1. **One question, one answer**: wait for the reply before the next question. Attach your recommendation to every question. Never dump a review essay with questions at the end.
-2. **Explore before asking**: if the codebase or the docs can answer a question, read them instead of asking it.
-3. **Challenge terminology**: when a term conflicts with the project glossary (CONTEXT.md), call it out. Sharpen fuzzy words into canonical terms — "'account' — do you mean Customer or User?"
-4. **Stress with scenarios**: invent concrete edge cases that force precise boundaries between concepts.
-5. **Cross-reference code**: when a claim contradicts what the code actually does, surface the contradiction immediately.
-6. **Persist decisions inline**: write resolved terms into CONTEXT.md as they happen — glossary only, no implementation detail. Offer an ADR only when the decision is hard to reverse AND surprising without context AND the result of a real trade-off; skip it if any of the three is missing.
-7. **Polish at the end**: if the session created or updated Korean documents (CONTEXT.md entries, ADRs, the plan itself), finish by running the `korean-docs` review pipeline over them.
+1. **Fix the review target**: state the plan or design being tested and carry forward its agreed constraints. Do not reopen them without contrary evidence.
+2. **Explore before asking**: inspect relevant code, docs, glossary, and decisions. If they answer a question, use that evidence instead of asking the user.
+3. **Identify consequential risks**: focus on assumptions about public behavior, failure handling, data boundaries, real blocking dependencies, and hard-to-reverse choices. Avoid hypothetical branches with no plausible effect on the implementation.
+4. **Stress with scenarios**: use concrete success, edge, and failure cases to test whether the proposed boundaries and acceptance criteria hold. Cross-reference code immediately when it contradicts a claim.
+5. **Ask only blockers**: ask one focused question at a time only when an unresolved answer materially affects correctness or scope and available evidence cannot resolve it. Include a recommendation and trade-off. Record lower-impact uncertainty as a residual risk instead of forcing a decision.
+6. **Update proportionally**: revise the existing plan or design when the review changes it. Add glossary or ADR documentation only when repository policy requires it or the decision has durable value; an ADR still needs to be hard to reverse, surprising without context, and based on a real trade-off. Apply the repository's document checks to files actually changed.
 
 ## Done when
-Every branch is resolved, the plan reflects each decision, and touched Korean documents passed the korean-docs pipeline. Called by `/dev-plan` step 5.
+Material correctness and scope risks are resolved or explicitly block implementation, the reviewed plan reflects resulting changes, and any touched documents pass their applicable checks.
 
 ---
 Distilled from the `grill-with-docs` skill.
