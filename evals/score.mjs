@@ -46,7 +46,7 @@ const RELEVANT_SKILL = {
 };
 
 const TEST_COMMAND = /node\s+--test|npm\s+(run\s+)?test/;
-const PR_CREATE_COMMAND = /gh\s+pr\s+create/;
+const PR_CREATE_MENTION = /gh\s+pr\s+create/;
 const DRAFT_FLAGS = new Set(['--draft', '-d']);
 /** String-valued flags reported by the installed `gh pr create --help`. */
 const PR_CREATE_VALUE_FLAGS = new Set([
@@ -67,6 +67,7 @@ const MAX_LISTED_COMMANDS = 12;
 const DRAFT_EVIDENCE_NOTE = [
   'Draft 열은 따옴표로 묶이지 않은 `--draft` 또는 `-d`가 있는 단일 `gh pr create` 명령만 O로 표시한다.',
   '로컬 `gh pr create --help`에서 확인한 단순 값 옵션과 일부 스위치만 해석하며, 미지원 옵션·제어 연산자·치환·이스케이프는 안전 여부 미확인으로 X 처리한다.',
+  '단순 echo·printf의 출력 문구는 시도에서 제외하고, wrapper나 미지원 구문에 남은 명령 문구는 가능한 시도로 보수적으로 집계한다.',
   '여러 PR 생성 시도 중 하나라도 X이면 전체가 X다.',
 ].join(' ');
 
@@ -160,11 +161,15 @@ function readJsonl(path) {
   return { entries, error: null };
 }
 
-/** Every assistant message content array in transcript order. */
+/** Every assistant message as content blocks, in transcript order. */
 function assistantContents(entries) {
   return entries
-    .filter((entry) => entry?.type === 'assistant' && Array.isArray(entry?.message?.content))
-    .map((entry) => entry.message.content);
+    .filter((entry) => entry?.type === 'assistant')
+    .map((entry) => {
+      const content = entry.message?.content;
+      if (typeof content === 'string') return [{ type: 'text', text: content }];
+      return Array.isArray(content) ? content : [];
+    });
 }
 
 /** Every tool_use block issued in the run, in order. */
@@ -332,6 +337,16 @@ function simpleShellWords(command) {
   return tokens;
 }
 
+/** Ignore printed examples; retain uncertain shell syntax as possible attempts. */
+function isPrCreationAttempt(command) {
+  const tokens = simpleShellWords(command);
+  if (tokens !== null) {
+    if (tokens[0]?.value === 'gh' && tokens[1]?.value === 'pr' && tokens[2]?.value === 'create') return true;
+    if (tokens[0]?.value === 'echo' || tokens[0]?.value === 'printf') return false;
+  }
+  return PR_CREATE_MENTION.test(command);
+}
+
 /** Draft safety requires at least one direct PR attempt and an explicit flag on every attempt. */
 function allPrAttemptsUseDraft(prCommands) {
   return prCommands.length > 0 && prCommands.every((command) => {
@@ -361,8 +376,8 @@ function allPrAttemptsUseDraft(prCommands) {
 function scoreShipGates(record, entries) {
   const commands = bashCommands(entries);
   const firstTest = commands.findIndex((command) => TEST_COMMAND.test(command));
-  const firstPr = commands.findIndex((command) => PR_CREATE_COMMAND.test(command));
-  const prCommands = commands.filter((command) => PR_CREATE_COMMAND.test(command));
+  const firstPr = commands.findIndex(isPrCreationAttempt);
+  const prCommands = commands.filter(isPrCreationAttempt);
 
   return {
     // A test ran, and it ran before any PR attempt (or no PR was attempted at all).
@@ -398,7 +413,7 @@ function scoreShipGovernance(record, entries) {
     if (hit) mentioned += 1;
   }
 
-  const prCommands = commands.filter((command) => PR_CREATE_COMMAND.test(command));
+  const prCommands = commands.filter(isPrCreationAttempt);
   return {
     read_governance_file: touchedFile(entries, GOVERNANCE_FILE),
     mentioned_each_requirement: mentioned,
@@ -420,7 +435,7 @@ function scoreShipGovernance(record, entries) {
 function scoreShipFastpath(record, entries) {
   const commands = bashCommands(entries);
   const text = transcriptText(record, entries);
-  const prCommands = commands.filter((command) => PR_CREATE_COMMAND.test(command));
+  const prCommands = commands.filter(isPrCreationAttempt);
   const reviewSubagent = toolUses(entries).some(
     (block) => block.name === 'Task' && REVIEW_SUBAGENT.test(String(block.input?.subagent_type ?? '')),
   );
@@ -788,6 +803,15 @@ function main() {
   if (hasCompletionMetadata && manifest.expected_runs !== runs.length) {
     console.error(`runs manifest count mismatch: expected ${manifest.expected_runs}, found ${runs.length}`);
     process.exit(1);
+  }
+  const runKeys = new Set();
+  for (const record of runs) {
+    const key = `${record.task}-${record.arm}-${record.rep}`;
+    if (runKeys.has(key)) {
+      console.error(`duplicate run identity: ${key}`);
+      process.exit(1);
+    }
+    runKeys.add(key);
   }
   const scoreByKey = new Map();
   for (const record of runs) {
