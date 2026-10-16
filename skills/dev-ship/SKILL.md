@@ -6,58 +6,54 @@ description: Use when implementation is complete and the user requests a pull re
 # dev-ship — Finalize and draft PR
 
 ## Core
-"Implemented" and "shippable" are different things. Eight gates, in order, before a PR exists.
+Prepare a reviewable Draft PR for the agreed change, with evidence that it meets the requirements and the repository's delivery rules. Review depth follows the actual impact; a gate count or file-count threshold is not a substitute for judgment.
 
-**After a gate has already run**, fix failures and re-run only affected checks. This table never skips initial checks or applies outside an authorized PR workflow:
+Reuse completed cleanup, review, and verification while their inputs remain unchanged. Establish missing evidence before publishing, and re-check evidence affected by a fix:
 
 | The fix changed | Re-check affected evidence |
 |---|---|
-| Source code | 2 tidy, 3 review, 5 verify, 6 spec check |
-| Documents only (ADR, README) | 4 docs and applicable gate 5 checks, including changed links or documentation builds |
-| Config, CI, metadata | 5 verify and any affected review, requirements, or governance evidence |
+| Source code | Cleanup, standards and requirements reviews, affected verification |
+| Documents only (ADR, README) | Document review and applicable link or documentation-build checks |
+| Config, CI, metadata | Consumers of the configuration and affected review or governance requirements |
 
-Treat the table as defaults: changed requirements or plans require gate 6 again; security-sensitive configuration requires gate 3; changed governance evidence requires gate 7. Then continue forward from where you stopped. Reuse evidence only while its inputs remain unchanged.
+The table is a starting point. A changed requirement invalidates its requirements review even if code is untouched; changed security or governance evidence needs its own review. Name the input or command behind reused evidence instead of treating an old green result as current proof.
 
-**Repeated failure without new evidence**: after two attempts at the same unresolved cause, report the gate, attempts, and blocker. Continue only with a materially different, evidence-backed approach within the authorized scope; do not repeat the same failed action.
+**Repeated failure without new evidence**: after two attempts at the same unresolved cause, report the attempts and blocker. Continue only with a materially different, evidence-backed approach within the authorized scope.
 
-## Change size (state before step 2)
-Report three numbers from step 1 before doing anything else: files changed, lines changed, and whether the diff touches migrations, schemas, or a public API signature.
+## Review depth
+Inspect behavior and consumers: migrations, schemas, public contracts, authentication, authorization, secrets, dependencies, deployment, CI, and runtime configuration may carry risk even in a one-line change. Unknown impact calls for investigation. The user's label "simple" is not evidence of low risk.
 
-The fast path — steps 1, 2, 5, 7, 8 — is available when **all** hold: 1–2 files, under 100 changed lines, no migrations/schema/public API changes, and no authentication, authorization, secrets, dependencies, deployment, CI, or runtime configuration changes. Unknown impact requires the full path. The user's label "simple" or "quick" is not evidence of low risk. Gate 4 also runs when the diff contains Korean documents not already reviewed; gate 6 also runs whenever the task has a plan document with a traceability table. Repository-required reviews and checks still run through gate 7.
+Keep a clear, low-impact review brief and inline. Use separate review contexts when complexity, uncertainty, or repository policy warrants them. Both review perspectives still apply; repository-required reviews and checks are never optional. Do not repeat completed work just to produce a checklist.
 
-## Steps (fixed order)
+## Prepare the change
 1. **Survey changes**: resolve the base from the existing PR or agreed target branch, otherwise inspect repository promotion rules and the remote default branch; ask only if the target remains ambiguous. Inspect `git diff <base>...HEAD`, staged and unstaged diffs, and untracked files. Identify this task's changes and preserve unrelated work; never discard, stash, or commit it merely to get a clean tree.
-2. **Cleanup**: apply the `tidy` checklist — behavior-preserving hygiene only, no new features. Load it as a skill where your runtime supports skills; otherwise follow `skills/tidy/SKILL.md` inline. Skip if nothing changed since the last tidy pass.
-3. **Review**: run code review — language-specific reviewer agents in parallel where your runtime supports subagents, otherwise an inline review pass. Fix CRITICAL and HIGH; report MEDIUM and below as a list. If fixes were made here, re-apply the tidy checklist to the fixed code.
+2. **Cleanup**: apply `tidy` to this task's changes only when cleanup has not already covered the current diff. Its preservation rules govern what may change. Load the skill where supported; otherwise follow `skills/tidy/SKILL.md` inline.
+3. **Review two perspectives**: review **standards** against the repository's documented rules, and **requirements** against the originating conversation, issue, spec, or plan. Keep findings separate so clean code cannot conceal missing behavior. Cite the violated rule or requirement and the relevant diff; label a design concern as a judgment call, not a hard violation. Skip checks already enforced by tooling. Fix CRITICAL and HIGH defects within scope, report remaining findings, and re-check affected evidence after fixes.
 4. **Docs check**: if the diff contains Korean documents not already reviewed during `grill`, run the `korean-docs` review pipeline on them.
-5. **Verify**: run the project's test and lint commands. On failure, stop here — no PR.
-6. **Spec check**: locate the task's plan document (from `dev-plan`). If none exists, skip and say so. Otherwise: (a) if the requirements source records a version or last-edited timestamp, compare it with the one stamped in the traceability table — when it moved, read what changed and re-judge the affected rows before continuing; (b) mark every traceability row satisfied / unsatisfied / out-of-scope, naming the code or test that proves each satisfied row — no row may stay unmarked; (c) an out-of-scope row must cite an existing agreed scope boundary or an explicit user-approved scope change. Missing implementation is not evidence of exclusion: without that agreement, mark the row unsatisfied; (d) an unsatisfied row stops the run unless the user explicitly accepts it as a known gap, named as such in the PR body. The completed table, including exclusion evidence, goes into the PR body at gate 8.
-7. **Governance**: if the project defines governance artifacts — change checklists, security-review triggers, ADR requirements, compliance hooks — confirm each one is satisfied and say so explicitly. If any item is unsatisfied, stop here and resolve it first; this gate is as hard as verification.
-8. **Draft PR**: follow the target repository's commit/branch/PR rules. Report title, body summary, and base branch in one line, then `gh pr create --draft` (GitHub; on other platforms use the draft equivalent, e.g. `glab mr create --draft`). Draft is the only default — never a ready-for-review PR.
+5. **Verify**: establish current results for the project's required tests, lint, type checks, and other applicable checks. Reuse valid results as above; a failed required check blocks publication. Distinguish local verification from CI, deployment, and runtime observations.
+6. **Check requirement coverage**: review all source items, including notes, pending items, and appended sections, even without a plan file. When a traceability table exists, compare any recorded source version or last-edited timestamp and re-judge changed items. Mark every row satisfied / unsatisfied / out-of-scope, naming code or tests as proof. Exclusion needs an existing agreed scope boundary or explicit user-approved scope change; missing code is not exclusion evidence. Unsatisfied requirements block publication unless the user explicitly accepts the named gap. Include the completed table and any exclusion evidence in the PR when one exists.
+7. **Honor governance**: confirm required checklists, security reviews, ADRs, and other repository delivery rules. An unmet requirement blocks publication; report the missing artifact and practical next step.
+
+## Write and publish the Draft PR
+Follow the repository template and branch/commit/PR rules. Scale the body to the change:
+- **Change**: the concrete problem and resulting behavior. Use a small before/after example; a diagram or diff sketch is useful only when it explains the change faster.
+- **Evidence**: actual before/after observations, regression test results, screenshots, or command output. Keep unrun or unavailable checks explicit; never invent a failing baseline. A PR attempt does not prove CI or deployment succeeded.
+- **Impact**: affected consumers, material risks, and how the change can be reverted or why reversal is difficult. Apply repository rollback requirements; avoid empty risk boilerplate.
+
+Report the proposed title, concise body summary, and base before publishing; this is not an extra approval request when PR creation is already authorized. Create with `gh pr create --draft` on GitHub or the platform's draft equivalent. Attach the created PR to the task when the environment provides that capability.
 
 ## Never
 - Create a PR with failing verification — "CI will catch it" is not a reason
-- Skip review outside the verified fast path, or skip a repository-required review
+- Skip requirements review because a plan file is absent, or bypass repository-required review
 - Default to a non-draft PR
 - Claim "tests passed" in the PR body without having run them
 - Mark a traceability row satisfied without naming the code or test that proves it
 
-## Required closing report
-End every run — shipped, stopped, or fast-pathed — with one line per gate. Nothing else proves a gate ran, and a gate nobody can see is a gate nobody runs.
-
-```
-변경 규모: 파일 N개, N줄, 마이그레이션/스키마/API 접촉 여부
-1 서베이  통과
-2 정리    통과 | 스킵(직전 tidy 이후 변경 없음)
-3 리뷰    통과(HIGH 1건 수정) | 스킵(fast path)
-4 문서    스킵(한국어 문서 없음)
-5 검증    통과(`npm test`) | 정지(2 failed)
-6 스펙대조 통과(추적표 12행 전부 판정) | 스킵(계획 문서 없음) | 정지(미충족 2건)
-7 거버넌스 통과(체크리스트 3항목) | 정지(ADR 없음)
-8 PR      https://... (draft) | 미생성
-```
-
-Name the command or artifact behind each verdict. "통과" with nothing after it is not a report. A skipped gate states its reason.
+## Closing report
+Lead with the Draft PR URL or the concrete blocker. Briefly explain changed behavior, verification evidence, and remaining gaps or risks. Name the command or artifact supporting a claim, and the reason for a material omission. Separate standards findings from requirements gaps when either remains. Do not print empty per-gate status rows or file/line counts unless requested or useful to explain impact.
 
 ## Done when
-The closing report is printed and, if a PR was created, its draft URL appears in line 8.
+The authorized Draft PR exists with accurate evidence, or a concrete blocker and the work already completed are reported. No required check, source requirement, or repository rule has been silently dropped.
+
+---
+Selected adaptations of Matt Pocock's [code-review](https://github.com/mattpocock/skills/blob/49dd158d1076134a641b33efb035946536778336/skills/engineering/code-review/SKILL.md) and [pr](https://github.com/mattpocock/skills/blob/49dd158d1076134a641b33efb035946536778336/skills/engineering/pr/SKILL.md); workflow name and repository-specific delivery rules retained.
