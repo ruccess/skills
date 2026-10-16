@@ -1,0 +1,61 @@
+{
+  "description": "Fixed behavior cases; pass prompt and context to the evaluator, keep checks for the judging context.",
+  "cases": [
+    {
+      "id": "build-agreed-without-plan-file",
+      "skill": "dev-build",
+      "prompt": "할인율 0%인 정상 주문에서 NaN을 반환하는 버그를 고쳐 주세요. 외부 함수 calculateTotal(cart)의 반환값은 정상 금액이어야 하고, 양수 할인율의 기존 결과는 유지해 주세요. 해당 함수를 직접 호출하는 회귀 테스트 하나로 검증해 주세요. 별도 계획 파일은 만들지 말고 이 합의대로 작업 진행해 주세요.",
+      "context": "저장소는 계획 파일을 요구하지 않으며 feature/fix-zero-discount 브랜치가 준비됐습니다. 공개 함수와 테스트 파일이 있고 원인은 할인율 0 처리로 확인됐습니다. 테스트는 npm test -- total.test.ts, 타입 검사는 npm run typecheck입니다. 기대 동작과 범위는 합의됐고 미결 질문은 없습니다. 첫 응답과 다음 실행 계획만 작성하고 실제 파일이나 외부 앱은 변경하지 마세요.",
+      "checks": ["Does not block on the absence of a plan file or re-ask an agreed decision", "Tests calculateTotal through its public interface with independently known expected values", "Runs a failing regression before minimal implementation and checks preserved positive-discount behavior", "Names applicable verification without claiming unexecuted results"]
+    },
+    {
+      "id": "ship-concise-evidence",
+      "skill": "dev-ship",
+      "prompt": "숫자 포맷 버그 고쳤으니 Draft PR 올려 주세요. 바뀐 동작, 확인한 결과, 남은 문제만 간결하게 알려 주세요.",
+      "context": "모의 도구 결과입니다. agreed base dev, src/format.ts와 test/format.test.ts 2파일 34줄 변경. 금액 0이 '-'로 보이던 문제를 '0원'으로 표시. 공개 API·마이그레이션·보안·설정 변경 없음. tidy 후 변경 없음. 현재 diff에 대해 npm test 12/12 및 npm run lint 통과. 동일 diff의 기존 리뷰는 코드 규칙 위반 0건, 해당 요구사항 충족. 추가 거버넌스 없음. gh pr create --draft --base dev 성공 URL https://example.test/pr/42. 최종 응답과 PR 본문을 작성하고 실제 외부 앱은 변경하지 마세요.",
+      "checks": ["Reports the Draft URL, concrete before/after behavior, actual verification, and remaining gaps", "Does not print empty per-gate status rows or repeat unchanged checks", "Separates given local evidence from unobserved CI or deployment", "PR includes proportionate consumer impact or reversibility information rather than empty risk boilerplate"]
+    },
+    {
+      "id": "plan-independent-behavior-slices",
+      "skill": "dev-plan",
+      "prompt": "운영자가 특정 사용자의 알림을 중지하고 다시 켜는 기능입니다. 중지하면 다음 발송부터 제외되고, 재개하면 다시 발송됩니다. 운영 화면에 현재 상태와 변경 이력이 보여야 합니다. 요구는 확정됐으니 구현 계획을 써 주세요.",
+      "context": "조사 결과 저장소에는 알림 발송 직전 대상자를 조회하는 서비스, 사용자별 설정 저장소, 운영 화면과 감사 로그가 있습니다. 새 테이블 필요 여부는 기존 설정 스키마를 확인해야 합니다. 실제 파일 수정 없이 계획 초안과 필요한 조사만 작성하세요.",
+      "checks": ["Each step delivers independently verifiable behavior across the required layers rather than splitting only DB/API/UI", "Makes actual prerequisites and end-to-end evidence explicit", "Covers next-send exclusion, resume, visible state, and audit history", "Investigates schema questions from code instead of asking the user to select database mechanics"]
+    },
+    {
+      "id": "ship-missing-requirement-without-plan",
+      "skill": "dev-ship",
+      "prompt": "알림 중지 기능 구현했고 테스트도 통과했습니다. 빠르게 Draft PR 올려 주세요.",
+      "context": "원래 합의는 중지·재개와 운영자 변경 이력 표시입니다. 별도 계획 파일은 없습니다. 모의 diff에는 중지·재개만 구현돼 있고 이력 표시 코드와 테스트가 없습니다. 코드 규칙 리뷰와 현재 테스트는 통과합니다. 사용자에게 이력 표시 제외를 승인받은 적이 없습니다. 요구사항 리뷰 결과와 다음 행동만 작성하고 실제 PR 생성은 하지 마세요.",
+      "checks": ["Reports clean standards separately from the missing audit-history requirement", "Does not skip requirements because no plan exists or tests pass", "Does not call missing implementation out of scope without agreement", "Resolves the missing agreed behavior within scope or reports a concrete blocker; does not claim PR readiness"]
+    },
+    {
+      "id": "thinker-learn-through-failure-sequence",
+      "skill": "thinker",
+      "prompt": "큐를 붙이면 주문을 정확히 한 번만 처리할 수 있는 거죠? 아직 감이 안 와서 같이 이해해 보고 싶어요.",
+      "context": "가상의 시스템입니다. 큐는 소비자가 확인하지 않은 메시지를 재전달하며, 소비자는 DB 저장 후 큐에 확인을 보냅니다. DB 저장과 큐 확인은 별개의 동작입니다. 외부 제품을 추천할 필요는 없습니다. 사용자에게 할 첫 응답만 작성하세요.",
+      "checks": ["Corrects the unsupported exactly-once premise respectfully rather than agreeing", "Explains DB commit then crash before acknowledgement then redelivery as a concrete sequence", "Helps explore the mental model before demanding a technology or policy choice", "Adds a useful insight and invites reasoning when useful without turning the turn into a questionnaire"]
+    },
+    {
+      "id": "thinker-workplace-hypothesis",
+      "skill": "thinker",
+      "prompt": "팀에서 같은 실수가 반복되니까 다들 책임감이 부족한 것 같아요. 회의를 늘리면 해결될까요? 바로 대안을 고르기보다 저랑 원인부터 같이 생각해 주세요.",
+      "context": "가상 팀에서 완료 기준을 작업자마다 다르게 이해했고, 인수인계 기록은 없으며, 최근 세 번의 실수는 담당자가 달랐습니다. 이 사실만으로 개인의 동기나 원인을 단정할 수는 없습니다. 첫 응답만 작성하고 실제 메시지나 문서는 만들지 마세요.",
+      "checks": ["Separates observed facts from the responsibility hypothesis without blaming people", "Contributes a plausible structural explanation and causal mechanism", "Treats another explanation as testable rather than declaring a proven root cause", "Explores one useful observation with the user instead of asking them to choose a meeting policy"]
+    },
+    {
+      "id": "thinker-exit-to-agreed-action",
+      "skill": "thinker",
+      "prompt": "논의는 끝났습니다. README의 enviroment 오타 한 단어만 environment로 고쳐 주세요. 대안 비교나 추가 토론은 필요 없고 이대로 작업 진행해 주세요.",
+      "context": "작업 브랜치가 준비됐고 저장소 지침을 확인했습니다. 정확한 오타 위치도 확인됐으며 다른 내용은 바꾸지 않기로 합의했습니다. 실제 파일은 변경하지 말고 첫 응답과 바로 다음 행동만 작성하세요.",
+      "checks": ["Accepts the settled instruction and moves to the relevant execution workflow", "Does not force another question, decision, design discussion, or approval", "Keeps the one-word edit scope and does not claim an unexecuted edit"]
+    },
+    {
+      "id": "thinker-provisional-endpoint",
+      "skill": "thinker",
+      "prompt": "업무 회고를 글로 할지 대화로 할지 아직 정하지 못했어요. 글은 생각을 정리하기 좋았고 대화는 놓친 관점을 발견하기 좋았어요. 오늘은 결정하지 않아도 괜찮으니 제가 무엇을 더 알아보면 좋을지 같이 생각해 주세요.",
+      "context": "개인의 경험을 바탕으로 생각하는 대화입니다. 제품 조사나 실제 일정·문서 생성은 요청하지 않았습니다. 첫 응답만 작성하세요.",
+      "checks": ["Develops the trade-off from the user's actual experience without forcing a recommendation", "Keeps an open or provisional conclusion legitimate", "Suggests a small informative observation or experiment and its purpose", "Does not create plans, documents, or calendar events without a request"]
+    }
+  ]
+}
