@@ -61,4 +61,4 @@ Procedure example: the reader asks how to fix a retry test. Verified current sta
 
 Before sending, check meaning and evidence, sufficient explanation for this reader, natural register, then concision. Make the answer and any required user action easy to find. Remove duplicated conclusions and unnecessary closers.
 
-Sources: distilled adaptations of [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman) and [ayghri/i-have-adhd](https://github.com/ayghri/i-have-adhd) (both MIT), not copies. These are output-design principles; do not assume a diagnosis or import a persistent mode toggle.
+Sources: distilled adaptations of [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman) and [ayghri/i-have-adhd](https://github.com/ayghri/i-have-adhd) (MIT; caveman's pre-3.0.0 MIT release, before its Apache-2.0 relicense), not copies. These are output-design principles; do not assume a diagnosis or import a persistent mode toggle.

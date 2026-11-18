@@ -43,7 +43,7 @@ SKILL.md 본문은 사람이 아니라 에이전트가 읽는다.
 **증류한 스킬은 출처를 밝힌다.**
 다른 스위트에서 원칙을 증류해 적용한 스킬은 본문 끝에 한 줄 크레딧을 남기고 원본 라이선스를 지킨다.
 이는 원문 복사가 아니다.
-brainstorm은 [obra/superpowers](https://github.com/obra/superpowers)를, korean-chat은 [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman)(MIT)을, korean-docs 체크리스트는 [DaleSeo/korean-skills](https://github.com/DaleSeo/korean-skills)(MIT)를 그렇게 표기한다.
+brainstorm은 [obra/superpowers](https://github.com/obra/superpowers)를, korean-chat은 [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman)(3.0.0 이전 MIT 판, 3.0.0부터 Apache-2.0)을, korean-docs 체크리스트는 [DaleSeo/korean-skills](https://github.com/DaleSeo/korean-skills)(MIT)를 그렇게 표기한다.
 
 ## 스킬 TDD
 

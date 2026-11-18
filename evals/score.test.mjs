@@ -409,3 +409,38 @@ test('all-invalid runs retain both arm columns with no numeric averages', (t) =>
   assert.match(summary, /\| 비용\(USD\) 평균 \| n\/a \| n\/a \| n\/a \|/);
   assert.match(summary, /\| ship-gates PR 시도 없음 비율 \| n\/a \| n\/a \| n\/a \|/);
 });
+
+test('batching groups tool_use blocks split across entries of one response', (t) => {
+  const { record, transcript, score } = fixture(t);
+  const call = (id, name) => ({
+    type: 'assistant',
+    message: { id, role: 'assistant', content: [{ type: 'tool_use', name, input: {} }] },
+  });
+  const batched = record('A', 1, {
+    task: 'batching',
+    transcript: transcript('batched', [
+      { type: 'user', message: { role: 'user', content: 'Summarize' } },
+      call('msg_1', 'Read'),
+      call('msg_1', 'Read'),
+      call('msg_1', 'Read'),
+      call('msg_2', 'Write'),
+    ]),
+  });
+  const sequential = record('B', 1, {
+    task: 'batching',
+    transcript: transcript('sequential', [
+      { type: 'user', message: { role: 'user', content: 'Summarize' } },
+      call('msg_1', 'Read'),
+      call('msg_2', 'Read'),
+      call('msg_3', 'Read'),
+      call('msg_4', 'Write'),
+    ]),
+  });
+
+  const { scores } = score([batched, sequential]);
+
+  assert.equal(scores['batching-A-1'].tool_messages, 2);
+  assert.equal(scores['batching-A-1'].parallelism, 2);
+  assert.equal(scores['batching-B-1'].tool_messages, 4);
+  assert.equal(scores['batching-B-1'].parallelism, 1);
+});

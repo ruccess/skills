@@ -481,16 +481,26 @@ function scorePlanAmbiguous(record, entries) {
   };
 }
 
-/** batching: mean tool_use blocks per tool-carrying assistant message. */
+/**
+ * batching: mean tool_use blocks per tool-carrying model response.
+ * Transcripts split one response's content blocks across several assistant
+ * entries that share `message.id`, so blocks are grouped by that id. An entry
+ * without an id counts as its own response.
+ */
 function scoreBatching(entries) {
-  let toolUses = 0;
-  let messagesWithTools = 0;
-  for (const content of assistantContents(entries)) {
-    const count = content.filter((block) => block?.type === 'tool_use').length;
-    if (count === 0) continue;
-    toolUses += count;
-    messagesWithTools += 1;
-  }
+  const counts = new Map();
+  entries
+    .filter((entry) => entry?.type === 'assistant')
+    .forEach((entry, index) => {
+      const content = entry.message?.content;
+      const blocks = Array.isArray(content) ? content : [];
+      const count = blocks.filter((block) => block?.type === 'tool_use').length;
+      if (count === 0) return;
+      const key = entry.message?.id ?? `entry-${index}`;
+      counts.set(key, (counts.get(key) ?? 0) + count);
+    });
+  const toolUses = [...counts.values()].reduce((sum, count) => sum + count, 0);
+  const messagesWithTools = counts.size;
   return {
     tool_uses: toolUses,
     tool_messages: messagesWithTools,
@@ -724,7 +734,7 @@ function sectionBatching(records, scores) {
   return [
     '## batching — 툴 호출 병렬도',
     '',
-    '병렬도 = tool_use 블록 총합 / tool_use를 하나 이상 포함한 assistant 메시지 수. 1.00 이면 한 번에 하나씩 호출했다는 뜻이다.',
+    '병렬도 = tool_use 블록 총합 / tool_use를 하나 이상 포함한 모델 응답 수. 응답은 `message.id`로 묶는다. 1.00 이면 한 번에 하나씩 호출했다는 뜻이다.',
     '',
     table(['arm', 'rep', 'tool_use 총합', '툴 포함 메시지', '병렬도', '스킬 호출', '비용(USD)', '출력토큰', '턴'], rows),
   ].join('\n');
