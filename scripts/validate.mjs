@@ -22,6 +22,8 @@ const MARKETPLACE_JSON = join(REPO_ROOT, '.claude-plugin', 'marketplace.json');
 const DESCRIPTION_MAX_CHARS = 1024;
 const DESCRIPTION_PREFIX = 'Use ';
 const BODY_LINE_BUDGET = 120;
+// Word budget catches long single lines that slip under the line budget.
+const BODY_WORD_BUDGET = 1800;
 const PLUGIN_NAME = 'ruccess';
 
 const errors = [];
@@ -73,7 +75,10 @@ function parseFrontmatter(raw) {
     data[key] = unquote(line.slice(separator + 1).trim());
   }
 
-  return { ok: true, data, bodyLineCount: lines.length - (closingIndex + 1) };
+  const bodyLines = lines.slice(closingIndex + 1);
+  const bodyWordCount = bodyLines.join('\n').split(/\s+/).filter(Boolean).length;
+
+  return { ok: true, data, bodyLineCount: bodyLines.length, bodyWordCount };
 }
 
 /** Strip one layer of matching single or double quotes. */
@@ -168,6 +173,13 @@ function validateSkillFile(skillPath, dirName) {
     warn(
       skillPath,
       `body is ${parsed.bodyLineCount} lines, over the ${BODY_LINE_BUDGET} line lean budget`,
+    );
+  }
+
+  if (parsed.bodyWordCount > BODY_WORD_BUDGET) {
+    warn(
+      skillPath,
+      `body is ${parsed.bodyWordCount} words, over the ${BODY_WORD_BUDGET} word lean budget`,
     );
   }
 }

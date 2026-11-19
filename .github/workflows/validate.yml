@@ -15,4 +15,4 @@ jobs:
         with:
           node-version: '20'
       - run: node scripts/validate.mjs
-      - run: node --test evals/run.test.mjs evals/score.test.mjs
+      - run: node --test evals/run.test.mjs evals/score.test.mjs evals/behavior.test.mjs hooks/hooks.test.mjs

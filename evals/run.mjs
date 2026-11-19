@@ -10,8 +10,10 @@
  * operator's global CLAUDE.md, other plugins, or hooks. Auth is untouched: we never
  * move CLAUDE_CONFIG_DIR or any credentials file.
  *
- * Every run gets a throwaway copy of the task fixture, runs sequentially, and lands
- * one record in results/<run-id>/runs.json. Zero dependencies by design.
+ * Every run gets a throwaway copy of the task fixture in a sandbox under
+ * os.tmpdir() — outside this repository, as its own git repository, with GitHub
+ * tokens stripped and gh pointed at an empty config folder. Runs are sequential
+ * and land one record in results/<run-id>/runs.json. Zero dependencies by design.
  */
 
 import { spawnSync } from 'node:child_process';
@@ -22,24 +24,24 @@ import {
   mkdtempSync,
   readdirSync,
   readFileSync,
+  realpathSync,
   writeFileSync,
 } from 'node:fs';
-import { homedir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createSandboxRoot, git as runGit, initStandaloneRepo, isolatedEnv } from './lib/isolation.mjs';
+import { findTranscript } from './lib/transcript.mjs';
 
 const EVALS_DIR = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = dirname(EVALS_DIR);
 const TASKS_DIR = join(EVALS_DIR, 'tasks');
 const RESULTS_DIR = join(EVALS_DIR, 'results');
-const PROJECTS_DIR = join(homedir(), '.claude', 'projects');
 
 const DEFAULT_MODEL = 'sonnet';
 const DEFAULT_MAX_TURNS = '25';
 const STDOUT_BUFFER_BYTES = 64 * 1024 * 1024;
 const BASE_BRANCH = 'main';
 const FEATURE_BRANCH = 'feature/eval';
-const GIT_AUTHOR = ['-c', 'user.name=eval', '-c', 'user.email=eval@example.invalid'];
 // Fallback commit subjects for a task.json that names none. A fixture whose diff
 // is not self-describing should set base_commit_message / change_commit_message,
 // because the agent reads `git log` before it reads the diff.
@@ -103,13 +105,7 @@ function buildCommand(arm, model, prompt, maxTurns) {
  * A flat fixture (no base/) falls back to a single commit on `feature/eval`.
  */
 function initGitRepo(workDir, task, remoteDir) {
-  const git = (args) => {
-    const proc = spawnSync('git', [...GIT_AUTHOR, ...args], { cwd: workDir, encoding: 'utf8' });
-    if (proc.error || proc.status !== 0) {
-      const reason = proc.error?.message ?? proc.stderr?.trim().slice(-500) ?? `exit ${proc.status}`;
-      throw new Error(`git ${args.join(' ')} failed: ${reason || `exit ${proc.status}`}`);
-    }
-  };
+  const git = (args) => runGit(workDir, args);
   const base = join(task.fixture, 'base');
   const change = join(task.fixture, 'change');
   const isLayered = existsSync(base);
@@ -133,26 +129,6 @@ function initGitRepo(workDir, task, remoteDir) {
   git(['checkout', FEATURE_BRANCH]);
 }
 
-/**
- * Claude Code stores transcripts at ~/.claude/projects/<slug>/<session-id>.jsonl,
- * where <slug> is the absolute cwd with every non-alphanumeric character replaced
- * by a dash (verified against the live directory listing). We still fall back to a
- * session-id scan, because the slug rule is an undocumented implementation detail.
- */
-function findTranscript(workDir, sessionId) {
-  if (!sessionId) return null;
-  const slug = workDir.replace(/[^a-zA-Z0-9]/g, '-');
-  const direct = join(PROJECTS_DIR, slug, `${sessionId}.jsonl`);
-  if (existsSync(direct)) return direct;
-
-  if (!existsSync(PROJECTS_DIR)) return null;
-  for (const entry of readdirSync(PROJECTS_DIR)) {
-    const candidate = join(PROJECTS_DIR, entry, `${sessionId}.jsonl`);
-    if (existsSync(candidate)) return candidate;
-  }
-  return null;
-}
-
 /** Pull the single `result` envelope out of stdout, tolerating array-shaped output. */
 function parseResultJson(stdout) {
   const parsed = JSON.parse(stdout);
@@ -161,25 +137,32 @@ function parseResultJson(stdout) {
 }
 
 /** Run one (task, arm, rep) triple and return its record. */
-function executeRun(task, arm, rep, model, runRoot, maxTurns) {
+function executeRun(task, arm, rep, model, runRoot, sandboxRoot, maxTurns) {
   const key = `${task.name}-${arm}-${rep}`;
-  const workDir = join(runRoot, 'work', key);
+  const workDir = join(sandboxRoot, 'work', key);
+  const ghConfigDir = join(sandboxRoot, 'gh', key);
   const resultDir = join(runRoot, key);
-  if (existsSync(workDir) || existsSync(resultDir)) {
+  if (existsSync(workDir) || existsSync(ghConfigDir) || existsSync(resultDir)) {
     throw new Error(`run directories already exist for ${key}`);
   }
   mkdirSync(resultDir);
-  mkdirSync(dirname(workDir), { recursive: true });
-  mkdirSync(workDir);
+  for (const dir of [workDir, ghConfigDir]) {
+    mkdirSync(dirname(dir), { recursive: true });
+    mkdirSync(dir);
+  }
   // A layered fixture starts from base/; initGitRepo lays change/ on top as a commit.
   const seed = existsSync(join(task.fixture, 'base')) ? join(task.fixture, 'base') : task.fixture;
   cpSync(seed, workDir, { recursive: true });
-  if (task.expects_git) initGitRepo(workDir, task, join(runRoot, 'remotes', `${key}.git`));
+  // Without a repo of its own, an agent's git commands would reach whatever
+  // repository encloses the work dir, so even no-git tasks get one (no remote).
+  if (task.expects_git) initGitRepo(workDir, task, join(sandboxRoot, 'remotes', `${key}.git`));
+  else initStandaloneRepo(workDir, FLAT_COMMIT);
 
   const startedAt = Date.now();
   const proc = spawnSync('claude', buildCommand(arm, model, task.prompt, maxTurns), {
     cwd: workDir,
     encoding: 'utf8',
+    env: isolatedEnv(ghConfigDir),
     maxBuffer: STDOUT_BUFFER_BYTES,
   });
 
@@ -188,7 +171,7 @@ function executeRun(task, arm, rep, model, runRoot, maxTurns) {
     arm,
     rep,
     model,
-    work_dir: workDir,
+    work_dir: realpathSync(workDir),
     result_dir: resultDir,
     exit_code: proc.status,
     wall_ms: Date.now() - startedAt,
@@ -262,14 +245,17 @@ function main() {
   mkdirSync(RESULTS_DIR, { recursive: true });
   const runRoot = mkdtempSync(join(RESULTS_DIR, `${timestamp}-`));
   const runId = basename(runRoot);
+  // Work dirs, bare remotes, and gh config live outside the repository.
+  const sandboxRoot = createSandboxRoot(`eval-${runId}`);
 
   const total = tasks.length * arms.length * reps;
   console.log(`run-id ${runId} — ${total} runs (model=${model}, arms=${arms.join(',')}, reps=${reps}, max-turns=${maxTurns})`);
+  console.log(`sandbox ${sandboxRoot}`);
 
   const runs = [];
   const writeManifest = (complete) => writeFileSync(
     join(runRoot, 'runs.json'),
-    JSON.stringify({ run_id: runId, model, expected_runs: total, complete, runs }, null, 2),
+    JSON.stringify({ run_id: runId, model, sandbox_root: sandboxRoot, expected_runs: total, complete, runs }, null, 2),
   );
   writeManifest(false);
   let index = 0;
@@ -277,7 +263,7 @@ function main() {
     for (const arm of arms) {
       for (let rep = 1; rep <= reps; rep += 1) {
         index += 1;
-        const record = executeRun(task, arm, rep, model, runRoot, maxTurns);
+        const record = executeRun(task, arm, rep, model, runRoot, sandboxRoot, maxTurns);
         runs.push(record);
         writeManifest(runs.length === total);
         console.log(progressLine(index, total, record));

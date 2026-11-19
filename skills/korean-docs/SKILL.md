@@ -51,9 +51,9 @@ Target: Korean .md deliverables others will read. Two passes, in this order. The
 
 With the korean-skills plugin installed, pass 2 becomes its `humanizer` then `grammar-checker`, sequential (order matters — humanizer rewrites, grammar-checker cleans up after; add `style-guide` only for 300+ line or multi-author documents). Pass 1 stays as written either way.
 
-Where no subagents exist, run pass 1 first and write its findings down before opening the checklist. Merge nothing until both are complete; group findings by pass and sort by severity within each pass, using location, reader impact, minimal fix, and severity. Report pass 1 first; its recommendation prevails only when findings conflict.
+Where no subagents exist, or when fewer than 30 nonblank prose lines were written or changed, run both passes inline: finish pass 1 and write its findings down before opening the checklist. Merge nothing until both are complete; group findings by pass and sort by severity within each pass, using location, reader impact, minimal fix, and severity. Report pass 1 first; its recommendation prevails only when findings conflict.
 
-Either way the main context receives only a findings summary — do not read reference files in the main thread.
+When the passes run in subagents, the main context receives only their findings summaries; do not paste the checklist or the full document back into the main thread.
 
 **Change-rate guard**: for stylistic edits to an existing document, calculate `changed nonblank prose lines / total nonblank prose lines` from its original source lines before any proposed reflow, excluding code blocks, commands, and quotes. One original prose line remains one denominator line even when it contains multiple sentences. If the rate is greater than 30%, report the numerator, denominator, rate, and findings; do not apply unless the user already authorized that rewrite scope. New documents have no original denominator; report the guard as not applicable. This guard does not revoke an existing authorization.
 
@@ -100,7 +100,7 @@ Spelling, spacing, grammar:
 ## Example — explanation for a non-developer
 Example source: tapping Save twice sends two requests and creates two orders because the server has no duplicate-request handling; checking the same request identifier is a proposed fix that is not implemented yet.
 
-> 앱에서 저장을 두 번 누르면 서버에 요청이 두 번 도착한다. 서버가 같은 요청인지 가려내지 못해 주문도 두 번 생성된다. 개선안은 같은 주문 요청에 같은 식별자를 붙이고, 서버가 이미 처리한 식별자인지 확인하는 방식이다. 이를 멱등성 처리라고 하며, 아직 구현하지 않았다.
+> 앱에서 저장을 두 번 누르면 서버에 요청이 두 번 도착한다. 서버가 같은 요청인지 가려내지 못해 주문도 두 번 생성된다. 개선안은 같은 주문 요청에 같은 식별자를 붙이고, 서버가 이미 처리한 식별자인지 확인하는 방식이다. 이를 멱등성 처리라고 한다. 이 개선안은 아직 구현하지 않았다.
 
 ---
 Checklist distilled from [DaleSeo/korean-skills](https://github.com/DaleSeo/korean-skills) (MIT).

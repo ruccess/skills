@@ -11,6 +11,7 @@
 
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
+import { assistantContents, skillInvocations } from './lib/transcript.mjs';
 
 /**
  * Korean prose smells the korean-docs skill targets. Three families:
@@ -32,17 +33,18 @@ const PROSE_PATTERNS = [
 ];
 
 /**
- * The skill each task is built to pull in. Feeds the arm-averaged
- * "관련 스킬 호출률" row: a treatment run that never loads the matching skill
- * is not evidence for or against that skill.
+ * The skills each task is built to pull in; loading any one of them counts.
+ * Feeds the arm-averaged "관련 스킬 호출률" row: a treatment run that never loads
+ * a matching skill is not evidence for or against that skill. An ambiguous
+ * request is meant to route to brainstorm as well as dev-plan.
  */
-const RELEVANT_SKILL = {
-  'korean-readme': 'korean-docs',
-  'ship-gates': 'dev-ship',
-  'ship-governance': 'dev-ship',
-  'ship-fastpath-abuse': 'dev-ship',
-  'plan-ambiguous': 'dev-plan',
-  batching: 'context-thrift',
+const RELEVANT_SKILLS = {
+  'korean-readme': ['korean-docs'],
+  'ship-gates': ['dev-ship'],
+  'ship-governance': ['dev-ship'],
+  'ship-fastpath-abuse': ['dev-ship'],
+  'plan-ambiguous': ['dev-plan', 'brainstorm'],
+  batching: ['context-thrift'],
 };
 
 const TEST_COMMAND = /node\s+--test|npm\s+(run\s+)?test/;
@@ -95,8 +97,15 @@ const UNMET_MENTION =
 const FAST_PATH_MENTION =
   /fast[\s-]?path|패스트\s*패스|빠른\s*경로|빠른\s*길|축소|간소화|간략화|생략|3\s*(?:개\s*)?게이트|세\s*게이트/i;
 
-/** Any sign that a review pass happened — a reviewer subagent or a reported review. */
-const REVIEW_SUBAGENT = /review|리뷰/i;
+/**
+ * Any sign that a review pass happened — a reviewer subagent or a reported review.
+ * The subagent tool is `Agent` in current Claude Code and `Task` in older builds.
+ * Only `subagent_type` and the short `description` are probed: the free-form
+ * `prompt` mentions review in passing too often to count. The lookbehind keeps
+ * "preview" out.
+ */
+const SUBAGENT_TOOLS = new Set(['Agent', 'Task']);
+const REVIEW_SUBAGENT = /(?<![a-z])review|리뷰/i;
 const REVIEW_MENTION = /코드\s*리뷰|리뷰\s*(?:결과|완료|수행|통과|패스)|리뷰를\s*(?:했|수행|진행|마)|code\s+review/i;
 
 /** "13개 파일" / "파일 13개" / "13 files" — whichever shape the answer uses. */
@@ -159,17 +168,6 @@ function readJsonl(path) {
     return { entries: [], error: 'transcript_no_assistant_content' };
   }
   return { entries, error: null };
-}
-
-/** Every assistant message as content blocks, in transcript order. */
-function assistantContents(entries) {
-  return entries
-    .filter((entry) => entry?.type === 'assistant')
-    .map((entry) => {
-      const content = entry.message?.content;
-      if (typeof content === 'string') return [{ type: 'text', text: content }];
-      return Array.isArray(content) ? content : [];
-    });
 }
 
 /** Every tool_use block issued in the run, in order. */
@@ -240,27 +238,6 @@ function reportedFileCount(text) {
     }
   }
   return max;
-}
-
-/**
- * Skill names loaded during the run, in first-seen order.
- *
- * The Skill tool records its target as `input.skill`, e.g. "ruccess:dev-ship".
- * The plugin prefix is stripped so the control arm (which cannot load plugin
- * skills at all) and the treatment arm print comparable names.
- */
-function skillInvocations(entries) {
-  const seen = [];
-  for (const content of assistantContents(entries)) {
-    for (const block of content) {
-      if (block?.type !== 'tool_use' || block.name !== 'Skill') continue;
-      const raw = block.input?.skill ?? block.input?.command ?? block.input?.name;
-      if (!raw) continue;
-      const name = String(raw).replace(/^ruccess:/, '');
-      if (!seen.includes(name)) seen.push(name);
-    }
-  }
-  return seen;
 }
 
 /** Drop fenced code blocks so code samples do not count as prose violations. */
@@ -437,7 +414,8 @@ function scoreShipFastpath(record, entries) {
   const text = transcriptText(record, entries);
   const prCommands = commands.filter(isPrCreationAttempt);
   const reviewSubagent = toolUses(entries).some(
-    (block) => block.name === 'Task' && REVIEW_SUBAGENT.test(String(block.input?.subagent_type ?? '')),
+    (block) => SUBAGENT_TOOLS.has(block.name)
+      && [block.input?.subagent_type, block.input?.description].some((field) => REVIEW_SUBAGENT.test(String(field ?? ''))),
   );
   const reported = reportedFileCount(record.result ?? '');
 
@@ -481,16 +459,26 @@ function scorePlanAmbiguous(record, entries) {
   };
 }
 
-/** batching: mean tool_use blocks per tool-carrying assistant message. */
+/**
+ * batching: mean tool_use blocks per tool-carrying model response.
+ * Transcripts split one response's content blocks across several assistant
+ * entries that share `message.id`, so blocks are grouped by that id. An entry
+ * without an id counts as its own response.
+ */
 function scoreBatching(entries) {
-  let toolUses = 0;
-  let messagesWithTools = 0;
-  for (const content of assistantContents(entries)) {
-    const count = content.filter((block) => block?.type === 'tool_use').length;
-    if (count === 0) continue;
-    toolUses += count;
-    messagesWithTools += 1;
-  }
+  const counts = new Map();
+  entries
+    .filter((entry) => entry?.type === 'assistant')
+    .forEach((entry, index) => {
+      const content = entry.message?.content;
+      const blocks = Array.isArray(content) ? content : [];
+      const count = blocks.filter((block) => block?.type === 'tool_use').length;
+      if (count === 0) return;
+      const key = entry.message?.id ?? `entry-${index}`;
+      counts.set(key, (counts.get(key) ?? 0) + count);
+    });
+  const toolUses = [...counts.values()].reduce((sum, count) => sum + count, 0);
+  const messagesWithTools = counts.size;
   return {
     tool_uses: toolUses,
     tool_messages: messagesWithTools,
@@ -724,7 +712,7 @@ function sectionBatching(records, scores) {
   return [
     '## batching — 툴 호출 병렬도',
     '',
-    '병렬도 = tool_use 블록 총합 / tool_use를 하나 이상 포함한 assistant 메시지 수. 1.00 이면 한 번에 하나씩 호출했다는 뜻이다.',
+    '병렬도 = tool_use 블록 총합 / tool_use를 하나 이상 포함한 모델 응답 수. 응답은 `message.id`로 묶는다. 1.00 이면 한 번에 하나씩 호출했다는 뜻이다.',
     '',
     table(['arm', 'rep', 'tool_use 총합', '툴 포함 메시지', '병렬도', '스킬 호출', '비용(USD)', '출력토큰', '턴'], rows),
   ].join('\n');
@@ -743,9 +731,9 @@ function sectionComparison(runs, scoreByKey) {
   const relevantSkillRate = (arm) =>
     mean(of(arm), (record) => {
       const score = scoreByKey.get(`${record.task}-${record.arm}-${record.rep}`);
-      const wanted = RELEVANT_SKILL[record.task];
+      const wanted = RELEVANT_SKILLS[record.task];
       if (!wanted) return null;
-      return score?.skills?.includes(wanted) ? 1 : 0;
+      return wanted.some((skill) => score?.skills?.includes(skill)) ? 1 : 0;
     });
 
   const metrics = [

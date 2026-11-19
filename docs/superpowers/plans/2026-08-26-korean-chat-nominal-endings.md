@@ -1,6 +1,9 @@
 # korean-chat 명사형 종결 전환 구현 계획
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> 기록용 계획 문서다. 현재 지침이 아니며 현재 계약은 각 `SKILL.md`가 정한다.
+
+> 2026-10-15 변경으로 기본 말투가 존댓말로 바뀌어 이 설계의 기본값(명사형)은 대체됐다.
+> 명사형은 요청하거나 산출물 형식으로 정해진 경우에만 쓴다.
 
 **Goal:** `korean-chat`을 존댓말 없는 한국어 Caveman 문체와 명사형 종결로 전환하고 모든 설명·평가·버전 정보를 일치시킨다.
 

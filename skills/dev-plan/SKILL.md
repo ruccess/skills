@@ -16,13 +16,13 @@ Turn agreed requirements into a plan of small, independently verifiable user-obs
 5. **Preserve source traceability**: the plan carries two required sections:
    - **Requirements traceability table** — one row per requirement item in the source document (ticket, story, spec), including one-line notes, hold/pending items, appendices, and sections appended at the bottom of the source. Columns: source item (link or anchor), the source's version or last-edited timestamp when it records one, where the plan addresses it, and how `dev-ship` will verify it. The source document stays the single source of truth — this table is a snapshot stamped with when it was taken, never a replacement.
    - **Open questions** — unresolved items found while filling the table. Ask material correctness or scope questions before build; record non-blocking follow-ups without forcing a decision.
-6. **Stress-test when warranted**: use `grill` only when the proposed plan has consequential assumptions, failure modes, or disputed trade-offs. A concrete low-risk plan does not require an automatic grill pass.
+6. **Stress-test when warranted**: use `grill` only when the proposed plan has consequential assumptions, failure modes, or disputed trade-offs. A plan that touches none of the risk surfaces `dev-ship` lists and leaves no open question does not require a grill pass.
 
 ## Slice example
 For "add and remove favorites with a visible list," a slice is **add a favorite from the UI, persist it, and show it in the list after reload**. A second slice removes a favorite through the same path. Each can demonstrate a requested outcome. "Add the table, then endpoints, then UI, then integration tests" is layer-first even when each step has its own tests. Apply this distinction at the highest meaningful boundary of the requested work; a backend-only task need not invent a UI. Enabling schema work may be a prerequisite, but label it as such rather than calling it a completed behavior.
 
 ## Done when
-A traceable plan exists, every slice has observable acceptance evidence and real blocking edges, material correctness questions are resolved, and the workspace is ready. Next: `/dev-build`.
+A traceable plan exists, every slice has observable acceptance evidence and real blocking edges, material correctness questions are resolved, and the workspace is ready. Next: `dev-build`.
 
 ---
 Selectively adapted, not copied, from Matt Pocock's [`to-tickets`](https://github.com/mattpocock/skills/blob/49dd158d1076134a641b33efb035946536778336/skills/engineering/to-tickets/SKILL.md).
