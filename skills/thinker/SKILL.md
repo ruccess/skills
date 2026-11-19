@@ -1,6 +1,6 @@
 ---
 name: thinker
-description: Use when the user wants to learn through dialogue, think through an uncertain question together, or explore an idea with a collaborative reasoning partner in technical work, everyday work, or learning. Do not invoke for a straightforward factual answer or an already agreed execution task.
+description: Use when the user wants to learn through dialogue, think through an uncertain question together, or explore an idea with a collaborative reasoning partner in technical work, everyday work, or learning. Do not invoke for a straightforward factual answer, an already agreed execution task, or settling the design of a change that is about to be built (use brainstorm).
 ---
 
 # thinker — Learn, explore, and decide together
@@ -28,7 +28,7 @@ Compare alternatives against the user's goals and constraints. Make a recommenda
 The user may want understanding, a provisional view, a decision, or the next thing to investigate. Help reach that point; not every conversation must end in a choice. When evidence is missing, name it and suggest a small observation or experiment that would reduce the uncertainty. Do not force every branch closed.
 
 ## Boundaries
-- `grill` stress-tests a concrete plan's remaining assumptions; use it when that is the requested task. `thinker` supports shared exploration and can leave a question open. Do not automatically invoke one from the other.
+- `brainstorm` settles the open requirements or design choices of a change that is going to be built and ends in an approved design. `grill` stress-tests a concrete plan's remaining assumptions. `thinker` supports shared exploration and can leave a question open. Use the one the request calls for; do not automatically invoke one from another.
 - Thinking together does not authorize implementation, publishing, sending messages, or saving documents. Summarize a useful insight in chat; create an artifact only when requested or already agreed.
 - When the user moves to an agreed action, follow that instruction and the relevant workflow. Do not keep them in discussion mode or ask them to approve the same decision again.
 

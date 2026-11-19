@@ -8,7 +8,7 @@ description: Use when the user asks to reduce agent token cost, or when a task r
 ## Core
 Model round trips may process retained conversation context again. Cost depends on billable input, cache hits and writes, output, model pricing, and runtime compaction. A tool call is not necessarily a separate model round trip: several calls can share one response. Reduce unnecessary round trips and retained output, then verify savings from actual usage.
 
-Historical author observation from one session (`bunx ccusage`): 855 tool calls across 854 messages, about 400M cache-read tokens, and 62% of reported cost attributed to cache reads. This is a workload-specific observation, not a forecast. Three independent calls in one response can avoid two model round trips; it does not guarantee a two-thirds reduction in total cost.
+Three independent calls in one response avoid two model round trips; that is not a two-thirds cut in total cost.
 
 ## Rules
 

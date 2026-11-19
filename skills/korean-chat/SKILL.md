@@ -6,7 +6,7 @@ description: Use when writing Korean chat responses or messages the user or team
 # korean-chat — Clear, natural Korean responses
 
 ## Core
-Prioritize meaning and evidence, the explanation the reader needs, natural Korean and appropriate register, then concision. Help the reader understand or act without searching for the answer. Cut empty framing and repeated conclusions; keep conditions, uncertainty, and details that change understanding or a decision.
+Prioritize meaning and evidence, the explanation the reader needs, natural Korean and appropriate register, then concision. Help the reader understand or act without searching for the answer. Cut greetings, empty framing, and repeated conclusions; keep conditions, uncertainty, and details that change understanding or a decision.
 
 Use polite Korean (`~요` or `~습니다`) for ordinary conversation. Follow the user's requested register within the requested output; do not carry a report's style into unrelated replies. Nominal endings (`~음/~함/~임/~됨`) suit a report or notes when requested or already established for that artifact. Keep the register consistent without inventing abbreviations or turning sentences into word fragments.
 
@@ -34,9 +34,7 @@ Use polite Korean (`~요` or `~습니다`) for ordinary conversation. Follow the
 ## Preservation
 Keep technical terms, code, commands, exact error messages, negation, numbers, units, and Korean particles/postpositions unchanged when they carry meaning. Do not omit a constraint such as `없음`, `아님`, or `불가`; do not soften or rephrase an exact error.
 Translate ordinary source-note prose or retain it, never both. Preserve an exact original only when it is code, an exact error, an identifier, or an explicitly requested literal.
-
-## Clarity
-Keep explanations, warnings, confirmations, and order-sensitive procedures complete and unambiguous. Preserve the user's requested register and the task's authorization boundaries. Keep code, errors, and technical terms verbatim.
+Keep explanations, warnings, confirmations, and order-sensitive procedures complete and unambiguous; concision never removes them or the task's authorization boundaries.
 
 ## Example
 Beginner question: "캐시가 뭐예요? 개발을 잘 몰라서요."
@@ -52,13 +50,13 @@ After:
 > - 개선안: 캐시 재생성 락과 TTL 지터를 제안했으며 아직 구현하지 않음
 
 Procedure example: the reader asks how to fix a retry test. Verified current state: the token was replaced, the retry test still fails, and production has not been deployed. Explain the next attempt separately from that state.
-> 토큰을 교체한 뒤에도 재시도 테스트가 실패하므로, 현재 실패 로그부터 확인해야 합니다.
+> 토큰을 교체한 뒤에도 재시도 테스트가 실패하므로 현재 실패 로그부터 확인해야 합니다.
 >
 > 1. 실패 로그에서 기대한 결과와 실제 결과의 차이를 확인합니다.
 > 2. 테스트가 교체한 fixture를 읽는지와 토큰의 유효 시간을 확인합니다.
 >
 > 현재 토큰 교체는 끝났지만 재시도 테스트는 실패했고, 운영 배포는 아직 하지 않았습니다.
 
-Before sending, check meaning and evidence, sufficient explanation for this reader, natural register, then concision. Make the answer and any required user action easy to find. Remove duplicated conclusions and unnecessary closers.
+Before sending, re-check in the Core priority order and remove duplicated conclusions and closers.
 
 Sources: distilled adaptations of [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman) and [ayghri/i-have-adhd](https://github.com/ayghri/i-have-adhd) (MIT; caveman's pre-3.0.0 MIT release, before its Apache-2.0 relicense), not copies. These are output-design principles; do not assume a diagnosis or import a persistent mode toggle.

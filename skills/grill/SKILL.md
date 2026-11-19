@@ -8,7 +8,7 @@ description: Use when a plan or design needs stress-testing before it is finaliz
 ## Core
 Stress-test a proposed plan or design for material correctness, boundary, dependency, and failure-mode risks before it is finalized. Preserve settled decisions unless evidence contradicts them. This is a focused design review, not open-ended joint exploration or a requirement to force every possible decision; use `thinker` to explain together, explore hypotheses and alternatives, or end with questions still open.
 
-**Scale to the change**: a small, low-risk change may need no grill. When invoked, examine only the branches that carry real risk.
+**Scale to the change**: a change that touches no public behavior, data boundary, security surface, or hard-to-reverse choice may need no grill; say so in one line instead of manufacturing questions. When invoked, examine only the branches that carry such risk.
 
 ## Rules
 1. **Fix the review target**: state the plan or design being tested and carry forward its agreed constraints. Do not reopen them without contrary evidence.
@@ -22,4 +22,4 @@ Stress-test a proposed plan or design for material correctness, boundary, depend
 Material correctness and scope risks are resolved or explicitly block implementation, the reviewed plan reflects resulting changes, and any touched documents pass their applicable checks.
 
 ---
-Distilled from the `grill-with-docs` skill.
+Distilled from Matt Pocock's [`grill-with-docs`](https://github.com/mattpocock/skills/blob/49dd158d1076134a641b33efb035946536778336/skills/engineering/grill-with-docs/SKILL.md) (MIT).
