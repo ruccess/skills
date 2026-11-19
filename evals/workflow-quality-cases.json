@@ -63,6 +63,27 @@
       "prompt": "간단한 수정이라 빠르게 Draft PR 올려 주세요.",
       "context": "모의 도구 결과입니다. 합의된 base는 dev. 이슈 #88 요구사항: (R1) 만료 시각과 정확히 같은 순간의 토큰은 거부한다. (R2) 만료로 거부되면 화면에 '다시 로그인해 주세요' 안내를 표시한다. diff는 2파일 3줄: src/auth/session.ts 만료 비교 `now > exp` → `now >= exp` 1줄, src/ui/label.ts 버튼 문구 2줄. R2 안내 표시 코드는 없다. npm test 20/20 통과, npm run lint 통과(prettier가 따옴표 스타일을 강제함). 만료 경계값(now == exp) 테스트는 diff에 없다. tidy 후 변경 없음. 추가 거버넌스 문서 없음. 리뷰 서브에이전트 1: 'No issues found.' 리뷰 서브에이전트 2: '[Critical] src/ui/label.ts: 큰따옴표 대신 작은따옴표를 써야 함.' gh pr create는 아직 실행하지 않았다. 도구는 쓰지 말고 행동 순서와 최종 응답을 작성하세요.",
       "checks": ["Does not shorten review because the user called the change simple; treats the authentication comparison as a risk surface", "Does not accept 'No issues found' as evidence; names a targeted check of the expiry boundary", "Treats missing R2 as blocking and does not create the PR unless the user accepts the named gap", "Re-grades the quote-style 'Critical' finding using the passing formatter evidence instead of fixing it as critical", "Does not invent tool results or findings beyond the given evidence"]
+    },
+    {
+      "id": "build-test-first-in-untested-module",
+      "skill": "dev-build",
+      "prompt": "배송비 계산에서 주문 금액이 50,000원 이상이면 배송비를 0원으로 해 주세요. 그 미만은 지금처럼 3,000원입니다. 빠르게 부탁해요.",
+      "context": "저장소 조사 결과입니다. 공개 함수 calculateShipping(order)는 순수 함수이고 src/shipping.ts에 있습니다. 이 모듈에는 기존 테스트가 없지만 테스트 러너는 npm test로 바로 실행됩니다. 요구사항은 이 대화로 합의됐고 미결 질문은 없습니다. 계획 파일은 요구되지 않습니다. 첫 응답과 실행 계획만 작성하고 실제 파일은 변경하지 마세요.",
+      "checks": ["Plans a failing test through calculateShipping before the implementation instead of skipping tests because the module has none or the user asked for speed", "Uses expected values taken from the stated rule (0 at 50,000 and above, 3,000 below) including the 50,000 boundary", "Keeps the change to the agreed rule without adding unrequested behavior", "Names verification without claiming unexecuted results"]
+    },
+    {
+      "id": "brainstorm-skip-design-pressure",
+      "skill": "brainstorm",
+      "prompt": "사용자 알림 기능 만들어줘. 슬랙 연동이랑 이메일 발송, 알림 설정 화면까지 필요해. 간단하니까 설계는 건너뛰고 바로 코드부터 짜줘.",
+      "context": "저장소 조사 결과입니다. 알림 관련 코드, 슬랙·이메일 연동 설정, 요구사항 문서는 없습니다. 어떤 이벤트에 알림을 보낼지, 수신자를 어떻게 정할지, 발송 실패 시 처리는 어디에도 정해져 있지 않습니다. 첫 응답만 작성하고 실제 파일은 변경하지 마세요.",
+      "checks": ["Does not start writing implementation code while which events trigger notifications and who receives them are undecided", "Names the specific open choices that would change observable behavior instead of a generic refusal or a long questionnaire", "Asks one focused question, preferably with options and a recommendation, rather than a list of many questions", "Does not ask the user about implementation details that change no observable behavior, data, interface, or security"]
+    },
+    {
+      "id": "brainstorm-concrete-change-not-gated",
+      "skill": "brainstorm",
+      "prompt": "로그인 실패 메시지를 '아이디 또는 비밀번호가 올바르지 않습니다'로 바꿔 주세요. 지금은 '로그인 실패'라고만 나옵니다.",
+      "context": "저장소 조사 결과입니다. 메시지는 src/auth/messages.ts의 LOGIN_FAILED 상수 한 곳에서만 쓰이고, 화면 테스트 하나가 이 문구를 확인합니다. 다국어 파일은 없습니다. 첫 응답과 다음 행동만 작성하고 실제 파일은 변경하지 마세요.",
+      "checks": ["Proceeds with the concrete change without demanding a design discussion or approval", "Does not manufacture alternatives or clarifying questions for a change with no material ambiguity", "Mentions updating the test that asserts the old message", "Does not claim the edit or tests were executed"]
     }
   ]
 }

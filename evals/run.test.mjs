@@ -1,12 +1,13 @@
 import assert from 'node:assert/strict';
 import { spawnSync, execFileSync } from 'node:child_process';
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync, chmodSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, realpathSync, rmSync, writeFileSync, chmodSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { dirname, join, relative, isAbsolute } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 
-const runner = join(dirname(fileURLToPath(import.meta.url)), 'run.mjs');
+const evalsSource = dirname(fileURLToPath(import.meta.url));
+const runner = join(evalsSource, 'run.mjs');
 
 function harness(t, { layered = false, failingGit = null } = {}) {
   const root = mkdtempSync(join(tmpdir(), 'ruccess-eval-run-'));
@@ -14,9 +15,12 @@ function harness(t, { layered = false, failingGit = null } = {}) {
   const evals = join(root, 'evals');
   const fixture = join(evals, 'tasks', 'sample', 'fixture');
   const bin = join(root, 'bin');
+  const sandboxTmp = join(root, 'tmp');
   mkdirSync(fixture, { recursive: true });
   mkdirSync(bin);
+  mkdirSync(sandboxTmp);
   cpSync(runner, join(evals, 'run.mjs'));
+  cpSync(join(evalsSource, 'lib'), join(evals, 'lib'), { recursive: true });
   writeFileSync(join(dirname(fixture), 'task.json'), JSON.stringify({ prompt: 'test prompt', expects_git: layered || Boolean(failingGit) }));
   if (layered) {
     mkdirSync(join(fixture, 'base'));
@@ -32,7 +36,20 @@ function harness(t, { layered = false, failingGit = null } = {}) {
 const fs = require('node:fs');
 const path = require('node:path');
 if (process.env.CLAUDE_MARKER) fs.writeFileSync(process.env.CLAUDE_MARKER, 'called');
-if (process.env.CREATE_CONFLICT_DIR) fs.mkdirSync(path.join(process.cwd(), '..', '..', 'sample-A-2'));
+if (process.env.CREATE_CONFLICT_DIR) {
+  const results = process.env.CREATE_CONFLICT_DIR;
+  const [runDir] = fs.readdirSync(results).filter((name) => fs.statSync(path.join(results, name)).isDirectory());
+  fs.mkdirSync(path.join(results, runDir, 'sample-A-2'));
+}
+if (process.env.ENV_DUMP) {
+  const ghDir = process.env.GH_CONFIG_DIR;
+  fs.writeFileSync(process.env.ENV_DUMP, JSON.stringify({
+    GH_CONFIG_DIR: ghDir ?? null,
+    ghConfigEntries: ghDir && fs.existsSync(ghDir) ? fs.readdirSync(ghDir) : null,
+    tokens: ['GH_TOKEN', 'GITHUB_TOKEN', 'GH_ENTERPRISE_TOKEN', 'GITHUB_ENTERPRISE_TOKEN'].filter((name) => name in process.env),
+    gitTopLevel: require('node:child_process').execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim(),
+  }));
+}
 const result = fs.existsSync('agent-output.txt') ? 'dirty' : 'clean';
 fs.writeFileSync('agent-output.txt', 'agent');
 process.stdout.write(JSON.stringify({ type: 'result', result }));
@@ -71,6 +88,11 @@ global.Date = class extends ActualDate {
     REAL_GIT: process.env.PATH.split(':').map((part) => join(part, 'git')).find(existsSync),
     GIT_CONFIG_NOSYSTEM: '1',
     GIT_CONFIG_GLOBAL: '/dev/null',
+    TMPDIR: sandboxTmp,
+    GH_TOKEN: 'parent-gh-token',
+    GITHUB_TOKEN: 'parent-github-token',
+    GH_ENTERPRISE_TOKEN: 'parent-ghe-token',
+    GITHUB_ENTERPRISE_TOKEN: 'parent-ghe-token',
   };
   const run = (extra = []) => spawnSync(process.execPath, [join(evals, 'run.mjs'), '--tasks', 'sample', '--arms', 'A', ...extra], {
     cwd: root, env, encoding: 'utf8',
@@ -81,7 +103,7 @@ global.Date = class extends ActualDate {
       ? readdirSync(dirs).map((name) => join(dirs, name, 'runs.json')).filter(existsSync).map((file) => JSON.parse(readFileSync(file, 'utf8')))
       : [];
   };
-  return { run, results, marker, env };
+  return { root, evals, run, results, marker, env };
 }
 
 test('same-clock executions use separate clean work and result directories', (t) => {
@@ -123,6 +145,7 @@ test('git failure leaves an incomplete manifest before Claude runs', (t) => {
   assert.deepEqual(results()[0], {
     run_id: results()[0].run_id,
     model: 'sonnet',
+    sandbox_root: results()[0].sandbox_root,
     expected_runs: 1,
     complete: false,
     runs: [],
@@ -139,8 +162,8 @@ test('bare git initialization failure aborts before Claude', (t) => {
 });
 
 test('existing result directory is refused before the next repetition', (t) => {
-  const { run, results, env } = harness(t);
-  env.CREATE_CONFLICT_DIR = '1';
+  const { evals, run, results, env } = harness(t);
+  env.CREATE_CONFLICT_DIR = join(evals, 'results');
   const proc = run(['--reps', '2']);
   assert.notEqual(proc.status, 0);
   assert.match(proc.stderr, /run directories already exist for sample-A-2/);
@@ -162,4 +185,42 @@ test('layered fixture creates main, feature branch, and origin refs', (t) => {
   assert.equal(git('rev-list', '--count', 'main..feature/eval'), '1');
   assert.equal(git('rev-parse', 'refs/remotes/origin/main'), git('rev-parse', 'main'));
   assert.equal(git('rev-parse', 'refs/remotes/origin/feature/eval'), git('rev-parse', 'feature/eval'));
+});
+
+test('work dir lives outside the evals directory', (t) => {
+  const { evals, run, results } = harness(t);
+  const proc = run();
+  assert.equal(proc.status, 0, proc.stderr);
+  const workDir = results()[0].runs[0].work_dir;
+  const fromEvals = relative(realpathSync(evals), realpathSync(workDir));
+  assert.ok(fromEvals.startsWith('..') || isAbsolute(fromEvals), `work dir inside evals: ${workDir}`);
+  assert.equal(readFileSync(join(workDir, 'value.txt'), 'utf8'), 'fixture\n');
+  assert.ok(existsSync(join(results()[0].runs[0].result_dir, 'raw-result.json')));
+});
+
+test('a task without expects_git still gets its own repository', (t) => {
+  const { run, results, env, root } = harness(t);
+  env.ENV_DUMP = join(root, 'env.json');
+  const proc = run();
+  assert.equal(proc.status, 0, proc.stderr);
+  const workDir = results()[0].runs[0].work_dir;
+  assert.ok(existsSync(join(workDir, '.git')));
+  const git = (...args) => execFileSync('git', args, { cwd: workDir, encoding: 'utf8' }).trim();
+  assert.equal(git('rev-list', '--count', 'HEAD'), '1');
+  assert.equal(git('remote'), '');
+  const seen = JSON.parse(readFileSync(env.ENV_DUMP, 'utf8'));
+  assert.equal(realpathSync(seen.gitTopLevel), realpathSync(workDir));
+});
+
+test('claude sees an empty gh config and no GitHub tokens', (t) => {
+  const { run, env, root } = harness(t);
+  env.ENV_DUMP = join(root, 'env.json');
+  const proc = run();
+  assert.equal(proc.status, 0, proc.stderr);
+  const seen = JSON.parse(readFileSync(env.ENV_DUMP, 'utf8'));
+  assert.ok(seen.GH_CONFIG_DIR, 'GH_CONFIG_DIR is set');
+  assert.deepEqual(seen.ghConfigEntries, []);
+  assert.deepEqual(seen.tokens, []);
+  const fromRoot = relative(realpathSync(root), realpathSync(seen.GH_CONFIG_DIR));
+  assert.ok(fromRoot.startsWith('tmp'), `gh config outside the sandbox: ${seen.GH_CONFIG_DIR}`);
 });

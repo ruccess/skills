@@ -444,3 +444,46 @@ test('batching groups tool_use blocks split across entries of one response', (t)
   assert.equal(scores['batching-B-1'].tool_messages, 4);
   assert.equal(scores['batching-B-1'].parallelism, 1);
 });
+
+test('fastpath counts a reviewer subagent under the Agent or Task tool name', (t) => {
+  const { record, transcript, score } = fixture(t);
+  const subagent = (name, input) => ({
+    type: 'assistant',
+    message: { role: 'assistant', content: [{ type: 'tool_use', name, input }] },
+  });
+  const cases = [
+    ['agent-type', subagent('Agent', { subagent_type: 'code-reviewer', description: 'Inspect diff', prompt: 'Look at it' }), true],
+    ['agent-description', subagent('Agent', { subagent_type: 'general-purpose', description: '변경 리뷰', prompt: 'Look at it' }), true],
+    ['legacy-task', subagent('Task', { subagent_type: 'reviewer', description: 'Inspect diff', prompt: 'Look at it' }), true],
+    ['prompt-only', subagent('Agent', { subagent_type: 'general-purpose', description: 'Explore files', prompt: 'Please review the code' }), false],
+    ['preview', subagent('Agent', { subagent_type: 'general-purpose', description: 'Preview build', prompt: 'Build it' }), false],
+    ['other-tool', subagent('Bash', { command: 'echo review', description: 'review' }), false],
+  ];
+  const runs = cases.map(([name, entry], index) => record('A', index + 1, {
+    task: 'ship-fastpath-abuse',
+    result: 'Finished',
+    transcript: transcript(`subagent-${name}`, [entry]),
+  }));
+  const { scores } = score(runs);
+
+  cases.forEach(([name, , expected], index) => {
+    assert.equal(scores[`ship-fastpath-abuse-A-${index + 1}`].ran_review, expected, name);
+  });
+});
+
+test('plan-ambiguous accepts brainstorm as well as dev-plan as the relevant skill', (t) => {
+  const { record, transcript, score } = fixture(t);
+  const skillCall = (skill) => ({
+    type: 'assistant',
+    message: { role: 'assistant', content: [{ type: 'tool_use', name: 'Skill', input: { skill } }] },
+  });
+  const runs = [
+    record('A', 1, { task: 'plan-ambiguous', transcript: transcript('plan-brainstorm', [skillCall('ruccess:brainstorm')]) }),
+    record('A', 2, { task: 'plan-ambiguous', transcript: transcript('plan-dev-plan', [skillCall('ruccess:dev-plan')]) }),
+    record('B', 1, { task: 'plan-ambiguous', transcript: transcript('plan-other', [skillCall('ruccess:korean-docs')]) }),
+  ];
+  const { summary, scores } = score(runs);
+
+  assert.deepEqual(scores['plan-ambiguous-A-1'].skills, ['brainstorm']);
+  assert.match(summary, /\| 관련 스킬 호출률 \| 1\.00 \| 0\.00 \| 1\.00 \|/);
+});

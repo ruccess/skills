@@ -16,6 +16,21 @@
 `CLAUDE_CONFIG_DIR`을 옮기거나 자격증명 파일을 복사하는 방식은 쓰지 않는다. 과제별
 권한은 픽스처 안의 `.claude/settings.json`이 project 스코프로 들어가서 결정한다.
 
+작업 폴더는 이 저장소 밖에 둔다.
+러너는 실행을 시작할 때 `os.tmpdir()` 아래에 `ruccess-eval-<run-id>-XXXXXX` 폴더를 하나 만들고, 그 안의 `work/<과제>-<arm>-<rep>`에 픽스처를 복사한다.
+bare 원격(`remotes/`)과 gh 설정 폴더(`gh/`)도 같은 폴더 아래에 생긴다.
+`runs.json`의 `sandbox_root`와 실행별 `work_dir`에 실제 경로가 남는다.
+채점기가 이 경로에서 README와 계획 문서를 읽으므로 러너는 이 폴더를 지우지 않는다.
+
+모든 작업 폴더는 자체 git 저장소다.
+`expects_git: true` 과제는 아래 ship-gates 설명처럼 `main`·`feature/eval` 두 커밋과 로컬 bare origin을 받는다.
+`expects_git: false` 과제도 `git init`과 초기 커밋 하나를 받고 원격은 없다.
+그래서 평가 대상 에이전트가 실행한 git 명령은 상위 저장소로 올라가지 못한다.
+
+`claude` 자식 프로세스는 운영자의 GitHub 자격을 받지 않는다.
+`GH_TOKEN`, `GITHUB_TOKEN`, `GH_ENTERPRISE_TOKEN`, `GITHUB_ENTERPRISE_TOKEN`을 env에서 지우고, `GH_CONFIG_DIR`을 실행별 빈 폴더로 지정한다.
+나머지 env는 그대로 넘기므로 Claude 인증은 영향을 받지 않는다.
+
 ## 과제와 지표
 
 **korean-readme** — 한국어 명세를 읽고 README를 산문으로 쓰게 한다.
@@ -77,6 +92,8 @@ plan이 든 문서가 생겼는지, 그 문서에 검증 명령이 들어 있는
 
 여섯 과제 모두에 스킬 호출 지표가 붙는다. 채점기가 전사에서 `Skill` 툴 호출을 세어 어떤
 스킬이 실제로 올라왔는지 뽑고, 비교표에는 과제가 겨냥한 스킬이 호출된 비율을 넣는다.
+과제마다 겨냥한 스킬 목록이 있고 그중 하나라도 올라오면 호출로 센다.
+plan-ambiguous는 `dev-plan`과 `brainstorm`을 모두 인정한다. 모호한 요구를 brainstorm으로 넘기는 것이 의도된 라우팅이기 때문이다.
 처치군인데 관련 스킬이 한 번도 올라오지 않았다면 그 실행은 스킬의 효과를 말해주지 못한다.
 지표가 갈리지 않을 때 스킬이 무력한 것인지 애초에 안 걸린 것인지 이 열로 가른다.
 
@@ -84,7 +101,7 @@ plan이 든 문서가 생겼는지, 그 문서에 검증 명령이 들어 있는
 
 개발 스킬과 `thinker`의 응답 내용은 [`workflow-quality-cases.json`](workflow-quality-cases.json)의 고정 사례로 별도 평가한다.
 [`행동 평가 절차`](../docs/test-scenarios.md#개발공동-탐구-행동-회귀)에 따라 같은 모델·추론 설정에서 기준선과 개선 후 응답을 비교하고 실제 응답·판정 근거·제한을 남긴다.
-이 사례들은 아래 자동 실행 과제 목록에 포함되지 않는다.
+이 사례들은 아래 자동 실행 과제 목록에 포함되지 않고, 다음 절의 `behavior.mjs`로 돌린다.
 
 ```
 node evals/run.mjs --reps 2
@@ -111,8 +128,52 @@ fixture의 Git 준비가 실패하면 Claude 실행 전에 중단한다.
 임시 fixture와 가짜 CLI를 사용하므로 Claude API 비용이 발생하지 않는다.
 
 ```bash
-node --test evals/run.test.mjs evals/score.test.mjs
+node --test evals/run.test.mjs evals/score.test.mjs evals/behavior.test.mjs
 ```
+
+## 블라인드 행동 평가
+
+`behavior.mjs`는 고정 사례에 응답을 생성하고 그 응답을 모델 판정자로 채점한다.
+생성자는 판정 기준(`checks`)을 보지 못하고, 판정자는 응답이 어느 조건에서 나왔는지 모른다.
+기존 수동 행동 평가에는 생성자가 기준을 받고 스스로 채점한 흔적이 있었고, 이 러너가 그 절차를 대체한다.
+
+```bash
+node evals/behavior.mjs --cases evals/workflow-quality-cases.json
+node evals/behavior.mjs --cases evals/korean-heldout-cases.json --arms none,skill --reps 2 --ids <id1>,<id2>
+```
+
+옵션은 `--cases <파일>`(필수), `--arms`(기본 `none,skill,plugin`), `--model`(기본 `sonnet`), `--judge-model`(기본 `sonnet`), `--reps`(기본 1), `--ids`다.
+사례 파일은 배열 `[{id, skill, prompt, context?, checks[]}]`과 `{cases: [...]}` 두 형식을 모두 받는다.
+생성자에게 가는 사용자 프롬프트는 `context`가 있으면 `prompt` 뒤에 빈 줄과 `[상황]` 줄을 붙여 `context`를 이어 쓴 것이고, 없으면 `prompt` 그대로다.
+알 수 없는 옵션, 잘못된 arm, 중복 사례 id, 없는 id, skill arm에 필요한 `SKILL.md` 누락은 Claude를 호출하기 전에 실패한다.
+
+세 arm은 다음 뜻이다.
+
+- `none`: `claude -p --setting-sources project,local --model <m> --output-format json --max-turns 4 "<프롬프트>"`로 스킬 없이 응답한다.
+- `skill`: 위 명령에 `--append-system-prompt`로 `skills/<skill>/SKILL.md` 전문을 붙인다. 스킬이 확실히 올라온 상태의 효과를 잰다.
+- `plugin`: 위 명령에 `--plugin-dir <저장소 루트>`를 붙인다. 모델이 스킬을 스스로 고르는 자연 발동을 재고, 전사에서 `Skill` 호출 목록을 뽑아 기록한다.
+
+생성과 판정은 호출마다 `os.tmpdir()` 아래 새 빈 폴더에서 돈다.
+폴더는 자체 git 저장소이고 이름은 무작위다. 모델이 cwd를 보므로 사례·arm·스킬 이름을 폴더 이름에 넣지 않는다.
+env 격리는 `run.mjs`와 같은 함수를 쓴다.
+
+판정은 응답마다 따로 `claude -p --setting-sources project,local --model <judge> --output-format json --max-turns 1`을 호출한다.
+판정자 입력에는 사례의 `prompt`·`context`, 응답 전문, `checks`만 들어가고 arm 이름·스킬 이름·다른 응답은 들어가지 않는다.
+판정자는 기준과 같은 순서의 JSON 배열 `[{"criterion", "passed", "reason"}]`만 내야 한다.
+러너는 응답 텍스트에서 JSON 배열을 찾아 읽는다.
+배열을 찾지 못하거나, 길이가 기준 수와 다르거나, `passed`가 boolean이 아니면 그 실행은 `judge_invalid`다.
+생성 단계에서 종료 코드가 0이 아니거나, `is_error`가 참이거나, 결과가 비면 `generation_invalid`다.
+무효 실행은 통과로 세지 않는다.
+
+결과는 `evals/results/behavior-<타임스탬프>-<랜덤>/`에 모인다.
+`behavior.json`에는 생성·판정 모델, 사례 파일과 사용한 `SKILL.md`의 sha256, 실행별 응답·판정·비용, plugin arm의 스킬 호출 목록이 들어간다.
+`summary.md`에는 사례×arm 통과 수, arm 합계, arm 사이에 판정이 갈린 기준, 무효 실행 목록, 총비용이 들어간다.
+통과 수의 분모는 기준 수 × 반복 수이고 무효 실행도 분모에 남는다. 그래서 무효 실행 수를 같은 칸에 함께 적는다.
+실행은 순차이고 실행마다 진행 줄이 한 줄씩 찍힌다.
+
+판정자도 모델이므로 편향이 남는다.
+판정자는 조건을 모르지만 응답의 말투나 구조에서 조건을 짐작할 수 있고, 같은 계열 모델이 쓴 글을 후하게 볼 수도 있다.
+점수가 arm 사이에서 갈린 기준은 `behavior.json`의 응답 전문을 직접 읽고 판정을 확인한다.
 
 ## 지표 자체의 검증
 
@@ -130,5 +191,7 @@ node --test evals/run.test.mjs evals/score.test.mjs
 모르며, 게이트 지표는 명령 문자열의 표면만 본다. 숫자가 갈리는 실행이 나오면 전사를
 직접 읽어야 한다.
 
-모델에게 모델을 채점시키는 방식은 이번 파일럿에서 뺐다. 채점자 편향과 비용을 함께
-떠안게 되고, 지금 필요한 것은 정밀한 점수가 아니라 차이가 있는지 없는지의 신호다.
+자동 과제(`run.mjs`·`score.mjs`)의 채점기는 모델 판정을 쓰지 않고 여전히 대리 지표만 센다.
+모델 판정은 `behavior.mjs`의 행동 평가에만 쓰고, 그때도 생성자는 기준을 모르고 판정자는 조건을 모르는 블라인드 방식으로 돌린다.
+블라인드로 돌려도 채점자 편향과 판정 비용은 남는다.
+그래서 행동 평가의 점수도 차이가 있는지 보는 신호로만 읽고, 갈린 항목은 응답을 직접 읽어 확인한다.
