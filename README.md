@@ -39,7 +39,9 @@ flowchart LR
 
 ### `brainstorm` — 미정 요구사항과 설계 선택 구체화
 
-요구사항이나 설계 선택이 미정일 때 구현 전에 그 선택을 확정한다.
+만들기로 한 변경의 요구사항이나 설계 선택이 미정일 때 구현 전에 그 선택을 확정한다.
+중요한 선택은 답에 따라 사용자가 보는 동작, 데이터 형태와 저장, 공개 인터페이스, 보안, 되돌리기 어려운 작업이 달라지는 선택이다.
+열린 탐구나 학습은 `thinker`가 맡는다.
 이미 승인된 설계나 중요한 모호함이 없는 구체적 변경에는 재승인을 요구하지 않는다.
 합의에 영향을 주는 빈틈이 있을 때 질문하며, 한 번에 하나씩 묻는 방식을 우선한다.
 실제 대안이 있을 때 장단점을 비교한다.
@@ -67,13 +69,17 @@ flowchart LR
 설명·예시·가설·반례를 제시하고, 관찰한 사실과 추정을 구분하면서 사용자의 이해를 발전시킨다.
 매번 선택을 요구하지 않으며, 사용자가 원하면 결론을 잠정적으로 남기고 다음에 확인할 근거를 찾는다.
 추천이 필요할 때는 이유와 한계를 설명하고, 이미 합의된 실행을 요청하면 토론을 계속 강요하지 않는다.
+만들 변경의 설계 결정이 필요하면 `brainstorm`을, 구체 계획의 가정 검토가 필요하면 `grill`을 쓴다.
 
 ### `/dev-build` — 구현
 
 대화·이슈·계획에 범위와 기대 동작이 합의되어 있으면 진행하며, 계획 파일의 존재만으로 구현을 막지 않는다.
+평가·리뷰·질문·계획만 요청한 작업에는 적용하지 않는다.
 테스트는 공개 인터페이스에서 관찰할 수 있는 동작을 확인하고, 기대값은 명세나 독립적으로 계산한 사례에서 가져온다.
 실패하는 테스트 하나를 확인한 뒤 최소 구현으로 통과시키는 단위를 반복한다.
-문서나 설정은 변경 내용과 사용처에 맞는 검사로 검증한다.
+테스트 우선은 실행해 관찰할 인터페이스가 없는 변경(문서, 정적 설정, 생성 산출물)에서만 건너뛴다.
+이때는 변경 내용과 사용처에 맞는 검사로 대신 검증한다.
+동작 변경에서 테스트를 건너뛰려면 없는 접점이 무엇인지 밝혀야 하며 번거로움은 사유가 되지 않는다.
 커밋은 저장소 규칙과 사용자 지시에 따라 하나의 검토 가능한 변경으로 묶는다.
 계획에서 벗어나면 계획부터 갱신하고, 마무리는 tidy로 정리한 뒤 영향받는 검증을 다시 실행한다.
 
@@ -90,6 +96,7 @@ flowchart LR
 계획 파일이 없어도 원래 합의를 대조하며, 요구사항 추적표가 있으면 원문 변경과 모든 행의 구현 근거를 확인한다.
 근거 없는 범위 제외, 실패한 필수 검증, 미충족 거버넌스는 PR 생성을 막는다.
 아직 검수하지 않은 한국어 문서는 변경 규모와 무관하게 검수한다.
+변경 규모는 검수 여부가 아니라 korean-docs의 인라인 수행과 별도 맥락 중 어느 방식을 쓸지만 정한다.
 
 PR에는 문제와 바뀐 동작, 실제 전후 증거, 영향과 되돌리기 정보를 변경 규모에 맞춰 적는다.
 완료 보고는 Draft URL이나 구체적인 장애 요인을 먼저 보여주고 검증과 남은 문제를 설명한다.
@@ -97,11 +104,18 @@ PR에는 문제와 바뀐 동작, 실제 전후 증거, 영향과 되돌리기 �
 
 ## 산출물 품질 스킬
 
-AI가 쓴 글은 티가 난다 — 번역투, 이중 피동, 상투어. 두 스킬이 채팅과 문서를 각각 담당한다. 플러그인에는 한글 감지 리마인드 hook이 동봉된다 — Write/Edit에서 한국어 텍스트를 감지하면 두 스킬의 점검 기준을 상기시킨다(세션당 10분 디바운스).
+AI가 쓴 글은 티가 난다 — 번역투, 이중 피동, 상투어.
+두 스킬이 채팅과 문서를 각각 담당한다.
+
+플러그인에는 한국어 리마인드 hook 두 개가 동봉된다.
+`UserPromptSubmit` hook은 프롬프트에 한글이 있으면 세션당 한 번 korean-chat 기준을 짧게 상기시킨다.
+`PostToolUse` hook은 Write·Edit로 문서 파일(`.md`, `.mdx`, `.markdown`, `.txt`, `.rst`, `.adoc`)에 한국어를 쓸 때만 korean-docs 점검을 상기시킨다.
+이 알림은 같은 세션에서 10분 안에 다시 나오지 않는다.
+코드 파일의 한국어 주석과 문자열에는 발동하지 않는다.
 
 ### `korean-chat` — 응답·메시지
 
-답이나 바로 실행할 행동을 첫 줄에 두고, 절차는 번호로 나누며 병렬 사실은 불릿으로 쓴다.
+인사말 없이 답이나 바로 실행할 행동을 첫 줄에 두고, 절차는 번호로 나누며 병렬 사실은 불릿으로 쓴다.
 일반 대화는 존댓말로 쓰며, 명사형 종결(`~음/~함/~임/~됨`)은 사용자가 요청하거나 해당 보고·메모의 형식으로 정해진 경우에 쓴다.
 의미와 근거, 독자에게 필요한 설명, 자연스러운 말투, 간결함 순으로 점검한다.
 짧은 질문이라도 낯선 개념에는 쉬운 설명과 구체적인 예시를 제공한다.
@@ -121,8 +135,10 @@ AI가 쓴 글은 티가 난다 — 번역투, 이중 피동, 상투어. 두 스�
 화살표는 3~4노드 이하의 짧고 선형적인 관계를 더 빨리 읽게 할 때만 선택적으로 쓴다.
 분기와 예외는 목록·표·Mermaid로 표현한다.
 
-Pass 1은 별도 검토 맥락에서 독자 관점으로 문서 구조와 훑어 읽기 쉬운지를 검수한다.
+Pass 1은 독자 관점으로 문서 구조와 훑어 읽기 쉬운지를 검수한다.
 Pass 2에서는 자연스러운 한국어를 먼저 점검한 뒤 전체 패턴 체크리스트를 안전망으로 적용한다.
+바뀐 비공백 산문 줄이 30줄 미만이면 두 pass를 서브에이전트 없이 순서대로 수행하고 Pass 1 발견을 적은 뒤 체크리스트를 연다.
+그 이상이거나 문서 전체를 검수할 때는 pass마다 별도 맥락을 쓴다.
 [DaleSeo/korean-skills](https://github.com/DaleSeo/korean-skills) 플러그인의 humanizer → grammar-checker는 Pass 2만 대체하며 Pass 1은 유지한다.
 
 기존 문서의 문체 교정은 원본 소스 줄 기준 변경률이 30%를 넘으면 비율을 보고하고, 해당 범위를 승인받지 않았다면 적용을 멈춘다.
@@ -164,6 +180,8 @@ claude plugin marketplace add ruccess/skills
 claude plugin install ruccess@ruccess
 ```
 
+플러그인으로 설치한 스킬은 `/ruccess:dev-plan`처럼 플러그인 이름을 앞에 붙여 호출한다.
+
 korean-docs의 검수는 스킬 자체 체크리스트만으로 동작한다. 더 정밀한 검수를 원하면 [DaleSeo/korean-skills](https://github.com/DaleSeo/korean-skills) 플러그인을 얹는다 — 선택 사항이다. ruccess 마켓플레이스가 해당 저장소를 함께 참조하므로 별도 마켓플레이스 등록 없이 바로 설치한다.
 
 ```bash
@@ -177,21 +195,24 @@ claude plugin install korean-skills@ruccess
 저장소를 이동하거나 브랜치를 바꾸면 설치 내용에도 영향을 준다.
 아래 명령은 같은 이름의 설치 폴더나 링크가 없는 환경의 최초 설치용이다.
 모든 대상을 먼저 검사하고 충돌이 하나라도 있으면 링크 생성 전에 중단한다.
+명령 전체가 서브셸에서 실행되므로 중단해도 현재 터미널은 닫히지 않는다.
 기존 설치본의 교체와 복구는 [한국어 스킬 동기화 기록](evals/findings-2026-10-15.md#설치-동기화-방식)을 참고한다.
 설치 경로와 폴더 링크 지원은 [공식 스킬 안내](https://learn.chatgpt.com/docs/build-skills)를 따른다.
 
 ```bash
-git clone https://github.com/ruccess/skills ~/ruccess-skills
-mkdir -p ~/.agents/skills
-for s in brainstorm dev-plan grill thinker dev-build dev-ship korean-chat korean-docs tidy context-thrift; do
-  if [ -e ~/.agents/skills/$s ] || [ -L ~/.agents/skills/$s ]; then
-    printf '기존 설치본을 먼저 백업하세요: %s\n' ~/.agents/skills/$s >&2
-    exit 1
-  fi
-done
-for s in brainstorm dev-plan grill thinker dev-build dev-ship korean-chat korean-docs tidy context-thrift; do
-  ln -s ~/ruccess-skills/skills/$s ~/.agents/skills/$s
-done
+(
+  git clone https://github.com/ruccess/skills ~/ruccess-skills || exit 1
+  mkdir -p ~/.agents/skills || exit 1
+  for s in brainstorm dev-plan grill thinker dev-build dev-ship korean-chat korean-docs tidy context-thrift; do
+    if [ -e ~/.agents/skills/$s ] || [ -L ~/.agents/skills/$s ]; then
+      printf '기존 설치본을 먼저 백업하세요: %s\n' ~/.agents/skills/$s >&2
+      exit 1
+    fi
+  done
+  for s in brainstorm dev-plan grill thinker dev-build dev-ship korean-chat korean-docs tidy context-thrift; do
+    ln -s ~/ruccess-skills/skills/$s ~/.agents/skills/$s
+  done
+)
 ```
 
 기존 링크가 같은 checkout을 가리키면 `git -C ~/ruccess-skills pull --ff-only`로 스킬 내용도 함께 갱신된다.

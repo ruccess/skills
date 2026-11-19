@@ -1,6 +1,6 @@
 # korean-docs 가독성과 한국어 품질 강화 구현 계획
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> 기록용 계획 문서다. 현재 지침이 아니며 현재 계약은 각 `SKILL.md`가 정한다.
 
 **Goal:** 긴 한국어 문서를 의미 단락, 문장별 소스 줄바꿈, 자연스러운 어순, 제한된 화살표로 쉽게 읽도록 `korean-docs`를 강화한다.
 
@@ -105,7 +105,7 @@ CONTRIBUTING의 한국어 문서 규칙에 같은 레이아웃 원칙을 넣는�
 
 ```bash
 node scripts/validate.mjs
-PYTHONPATH=../work/python-deps python3 /Users/2309-n0201/.codex/skills/.system/skill-creator/scripts/quick_validate.py skills/korean-docs
+PYTHONPATH=../work/python-deps python3 <skill-creator 경로>/scripts/quick_validate.py skills/korean-docs
 git diff --check
 ```
 

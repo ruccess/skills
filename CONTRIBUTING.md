@@ -37,13 +37,15 @@ SKILL.md 본문은 사람이 아니라 에이전트가 읽는다.
 
 **분량은 얇게 유지한다.**
 본문 70줄을 기준선으로 삼고 120줄을 넘으면 구성을 검토한다.
+줄 수와 별개로 본문 1,000단어를 기준선으로 삼고 1,800단어를 넘으면 검증 스크립트가 경고한다.
+긴 한 줄로 줄 수 기준을 피하지 못하게 하려는 기준이다.
 일반적인 지시와 중복 설명을 먼저 줄이며, 판단에 필요한 예시나 예외를 줄 수만 맞추려고 삭제하지 않는다.
 짧은 예시는 본문에 두고, 특정 상황에서만 필요한 긴 설명은 사용 지점에서 연결한 참고 파일로 나눌 수 있다.
 
 **증류한 스킬은 출처를 밝힌다.**
 다른 스위트에서 원칙을 증류해 적용한 스킬은 본문 끝에 한 줄 크레딧을 남기고 원본 라이선스를 지킨다.
 이는 원문 복사가 아니다.
-brainstorm은 [obra/superpowers](https://github.com/obra/superpowers)를, korean-chat은 [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman)(3.0.0 이전 MIT 판, 3.0.0부터 Apache-2.0)을, korean-docs 체크리스트는 [DaleSeo/korean-skills](https://github.com/DaleSeo/korean-skills)(MIT)를 그렇게 표기한다.
+brainstorm은 [obra/superpowers](https://github.com/obra/superpowers)를, korean-chat은 [JuliusBrussee/caveman](https://github.com/JuliusBrussee/caveman)(3.0.0 이전 MIT 판, 3.0.0부터 Apache-2.0)과 [ayghri/i-have-adhd](https://github.com/ayghri/i-have-adhd)(MIT)를, grill은 [mattpocock/skills](https://github.com/mattpocock/skills)의 `grill-with-docs`(MIT)를, korean-docs 체크리스트는 [DaleSeo/korean-skills](https://github.com/DaleSeo/korean-skills)(MIT)를 그렇게 표기한다.
 
 ## 스킬 TDD
 
@@ -54,6 +56,8 @@ brainstorm은 [obra/superpowers](https://github.com/obra/superpowers)를, korean
 3. **재평가** — 같은 요청에 개선한 스킬을 적용하고, 앞서 놓친 기준의 충족과 기존 안전장치의 보존을 확인한다. 비교할 실패가 없었다면 해당 사례에서 개선 효과를 주장하지 않는다
 
 스킬별 절차는 `docs/test-scenarios.md`에 있다.
+행동 평가 사례는 스킬 본문 예시와 다른 프롬프트를 쓴다.
+응답 생성자에게는 판정 기준을 주지 않고 판정은 조건을 모르는 별도 맥락에서 한다.
 원문 요구사항의 충족, 유효한 검증 근거, 무관한 변경 보존을 평가하고 명령어나 상태표의 존재만으로 품질을 판정하지 않는다.
 PR 본문에는 실제 기준선에서 관측한 실패와 개선 후 결과를 함께 적으며, 관측하지 않은 실패는 만들지 않는다.
 보존 회귀와 사용자가 지정한 말투 검증은 기준선 통과도 그대로 기록하며, 차이가 없는 항목을 개선 효과로 집계하지 않는다.
@@ -64,22 +68,29 @@ PR을 열기 전에 검증 스크립트를 돌린다.
 
 ```bash
 node scripts/validate.mjs
-node --test evals/run.test.mjs evals/score.test.mjs
+node --test evals/run.test.mjs evals/score.test.mjs evals/behavior.test.mjs hooks/hooks.test.mjs
 ```
 
-첫 명령은 frontmatter 형식과 매니페스트 일관성을 확인한다.
-두 번째 명령은 평가 실행 격리와 무효 실행 제외를 임시 fixture로 검증하며 Claude API를 호출하지 않는다.
+첫 명령은 frontmatter 형식, 본문 분량, 매니페스트 일관성을 확인한다.
+두 번째 명령은 평가 실행 격리, 무효 실행 제외, 행동 평가 러너, 한국어 리마인드 hook을 임시 fixture로 검증하며 Claude API를 호출하지 않는다.
 CI에서도 같은 검사를 실행한다.
 
 ## 버전과 커밋
 
-버전은 semver를 느슨하게 따르고 **세 곳을 함께 올린다.** 하나라도 빠지면 마켓플레이스가 옛 버전을 설치한다.
+버전은 semver를 느슨하게 따르고 **세 곳을 함께 올린다.**
+설치 버전은 `plugin.json`의 `version`이 결정한다.
+marketplace 항목의 `version`은 이 값과 다르면 경고만 나고 무시된다.
+`metadata.version`은 설치 버전에 관여하지 않는다.
+`plugin.json` 버전을 올리지 않으면 기존 사용자는 캐시된 판에 머문다.
+세 값이 어긋나면 어느 판이 배포됐는지 알기 어려우므로 검증 스크립트가 불일치를 오류로 잡는다.
 
 - `.claude-plugin/plugin.json` → `version`
 - `.claude-plugin/marketplace.json` → `metadata.version`
 - `.claude-plugin/marketplace.json` → `plugins[]` 의 ruccess 항목 `version`
 
-커밋은 conventional commits를 쓴다 — `feat:` `fix:` `docs:` `chore:`. 스킬 동작이 바뀌면 feat이나 fix고 문서만 손대면 docs다. PR은 draft로 연다.
+커밋 제목은 `feature : …`, `fix : …`, `docs : …`, `test : …`, `chore : …`처럼 유형 뒤에 콜론을 앞뒤 공백과 함께 두고 한국어로 쓴다.
+스킬 동작이 바뀌면 feature나 fix고 문서만 손대면 docs다.
+PR은 draft로 연다.
 
 ## 한국어 문서
 

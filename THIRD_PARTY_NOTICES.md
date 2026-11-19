@@ -39,3 +39,16 @@ The finding-verification and severity rules in `dev-ship` are distilled, not cop
 
 `korean-chat` distills principles from JuliusBrussee/caveman releases before 3.0.0, which were MIT-licensed.
 Caveman 3.0.0 (commit 921eab8, 2026-09-24) relicensed the repository to Apache-2.0 and keeps the earlier MIT text as `LICENSE-MIT`.
+
+## Other distilled sources
+
+These sources are credited in skill instructions or by an upstream skill but have no notice above.
+Their principles are distilled, not copied, and each source is MIT-licensed.
+
+| Source | License | Used by |
+| --- | --- | --- |
+| obra/superpowers `skills/brainstorming` | MIT, Copyright (c) 2025 Jesse Vincent | `brainstorm` |
+| mattpocock/skills `skills/engineering/grill-with-docs` | MIT, Copyright (c) 2026 Matt Pocock | `grill` |
+| ayghri/i-have-adhd | MIT, Copyright (c) 2026 Ayoub Ghriss | `korean-chat` |
+| DaleSeo/korean-skills | MIT, Copyright (c) 2026 Dale Seo | `korean-docs` checklist |
+| humanlayer/skills `show-me` | MIT, Copyright (c) 2026 HumanLayer | referenced by the upstream `pr` skill |
