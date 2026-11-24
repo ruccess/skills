@@ -92,6 +92,20 @@ marketplace 항목의 `version`은 이 값과 다르면 경고만 나고 무시�
 스킬 동작이 바뀌면 feature나 fix고 문서만 손대면 docs다.
 PR은 draft로 연다.
 
+## 머지
+
+이 저장소는 자동 머지를 켰다.
+정책은 `.ruccess/automerge.json`에 있고, `main`에는 필수 검사 `validate`가 걸려 있다.
+관리자도 이 검사를 건너뛸 수 없으므로 `main`에 직접 푸시하지 않고 PR로 올린다.
+
+`dev-ship`의 머지 조건을 모두 충족한 PR은 `gh pr ready` 뒤 `gh pr merge --auto --merge`로 자동 머지를 건다.
+머지는 `validate`가 통과한 뒤 GitHub가 수행한다.
+다음 경로를 건드리는 PR은 자동 머지 대상이 아니며 사람이 확인하고 머지한다.
+
+- `hooks/**`: 플러그인을 설치한 모든 세션에서 실행되는 코드다.
+- `.github/**`, `scripts/**`: 필수 검사 자체를 정의한다.
+- `.ruccess/automerge.json`: 정책 변경이다.
+
 ## 한국어 문서
 
 README와 `docs/` 아래 문서는 사람이 읽기 쉬운 한국어 완결 산문으로 쓴다.
