@@ -181,3 +181,12 @@ hook은 에이전트 실행으로 검증하지 못했으므로, 구현 맥락을
 ```bash
 node evals/run.mjs --tasks ship-lying-tests,ship-automerge-eligible,ship-automerge-oneway,ship-automerge-broken,ship-automerge-denied,ship-automerge-datawrite,ship-automerge-nochecks --reps 2
 ```
+
+## 후속: 이 저장소에 적용
+
+같은 날 이 저장소에도 자동 머지를 켰다.
+`main`에 필수 검사 `validate`를 걸고(관리자 포함), 저장소 설정의 Allow auto-merge를 켜고, 정책 파일 `.ruccess/automerge.json`을 PR #5로 머지했다.
+
+이 과정에서 관문 hook이 쓰는 조회를 실제 GitHub에서 확인했다.
+`gh pr checks 5 --required --json name,bucket`이 `[{"bucket":"pass","name":"validate"}]`를 돌려줬다.
+평가에서는 가짜 gh로만 확인했던 응답 형태다.
