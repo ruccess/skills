@@ -190,3 +190,8 @@ node evals/run.mjs --tasks ship-lying-tests,ship-automerge-eligible,ship-automer
 이 과정에서 관문 hook이 쓰는 조회를 실제 GitHub에서 확인했다.
 `gh pr checks 5 --required --json name,bucket`이 `[{"bucket":"pass","name":"validate"}]`를 돌려줬다.
 평가에서는 가짜 gh로만 확인했던 응답 형태다.
+
+이어서 PR #8로 `automerge` 워크플로를 넣었다.
+PR이 ready가 되면 워크플로가 정책의 금지 경로와 필수 검사를 확인하고 자동 머지를 건다.
+에이전트 세션의 권한 시스템이 `gh pr merge`를 막아도 `gh pr ready`만으로 머지까지 이어지게 하려는 것이다.
+되돌릴 수 있는 변경인지와 증거가 충분한지는 워크플로가 보지 않으므로, ready로 바꾸기 전에 `dev-ship`이 판단해야 한다.
