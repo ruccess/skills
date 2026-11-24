@@ -4,7 +4,7 @@
 
 import { existsSync, readdirSync, readFileSync, realpathSync } from 'node:fs';
 import { homedir } from 'node:os';
-import { join } from 'node:path';
+import { join, relative, resolve } from 'node:path';
 
 /** Claude Code's transcript root. Read lazily so a test can move HOME. */
 const projectsDir = () => join(homedir(), '.claude', 'projects');
@@ -80,17 +80,36 @@ export function assistantContents(entries) {
  * The Skill tool records its target as `input.skill`, e.g. "ruccess:dev-ship".
  * The plugin prefix is stripped so the control arm (which cannot load plugin
  * skills at all) and the treatment arm print comparable names.
+ *
+ * An external executor has no Skill tool and reads `<skillsDir>/<name>/SKILL.md`
+ * instead. Pass `skillsDir` for such a run and those Reads count as loads too.
  */
-export function skillInvocations(entries) {
+export function skillInvocations(entries, { skillsDir = null } = {}) {
   const seen = [];
+  const add = (name) => {
+    if (name && !seen.includes(name)) seen.push(name);
+  };
   for (const content of assistantContents(entries)) {
     for (const block of content) {
-      if (block?.type !== 'tool_use' || block.name !== 'Skill') continue;
-      const raw = block.input?.skill ?? block.input?.command ?? block.input?.name;
-      if (!raw) continue;
-      const name = String(raw).replace(/^ruccess:/, '');
-      if (!seen.includes(name)) seen.push(name);
+      if (block?.type !== 'tool_use') continue;
+      if (block.name === 'Skill') {
+        const raw = block.input?.skill ?? block.input?.command ?? block.input?.name;
+        if (raw) add(String(raw).replace(/^ruccess:/, ''));
+      } else if (block.name === 'Read' && skillsDir) {
+        add(skillReadName(block.input?.file_path, skillsDir));
+      }
     }
   }
   return seen;
+}
+
+/** macOS reports /var/... as /private/var/...; compare both spellings as one. */
+const canonicalPath = (path) => resolve(path).replace(/^\/private(?=\/)/, '');
+
+/** The skill name when `filePath` is exactly `<skillsDir>/<name>/SKILL.md`, else null. */
+function skillReadName(filePath, skillsDir) {
+  if (!filePath) return null;
+  const rel = relative(canonicalPath(String(skillsDir)), canonicalPath(String(filePath)));
+  const match = /^([^/\\]+)[/\\]SKILL\.md$/.exec(rel);
+  return match && match[1] !== '..' ? match[1] : null;
 }

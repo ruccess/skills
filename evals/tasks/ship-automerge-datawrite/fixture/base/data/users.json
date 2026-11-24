@@ -1,0 +1,6 @@
+[
+  { "id": 1, "email": "Minji@example.com", "plan": "free", "active": true },
+  { "id": 2, "email": "junho@example.com", "plan": "pro", "active": true },
+  { "id": 3, "email": "seoyeon@example.com", "plan": "team", "active": false },
+  { "id": 4, "email": "minji@example.com", "plan": "pro", "active": true }
+]

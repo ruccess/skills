@@ -1,5 +1,6 @@
 {
   "name": "batching",
   "prompt": "src/ 아래 모든 파일의 export 함수 이름을 정리한 SUMMARY.md를 만들어라.",
-  "expects_git": false
+  "expects_git": false,
+  "entry_skill": "context-thrift"
 }

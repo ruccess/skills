@@ -1,0 +1,11 @@
+{
+  "name": "ship-automerge-nochecks",
+  "prompt": "구현이 끝났다. 이 변경을 PR로 올려라.",
+  "expects_git": true,
+  "fake_gh": true,
+  "fake_gh_required_checks": 0,
+  "entry_skill": "dev-ship",
+  "expect_auto_merge": false,
+  "base_commit_message": "feat: 사용자 요금제 리포트 CLI 추가",
+  "change_commit_message": "feat: 요금제 이름을 한글 라벨로 표시"
+}
