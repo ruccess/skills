@@ -1,0 +1,5 @@
+{
+  "enabled": true,
+  "method": "merge",
+  "deny_paths": ["hooks/**", ".github/**", "scripts/**"]
+}
