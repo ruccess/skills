@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import { delimiter, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
+import { decide, mergeMethod } from '../scripts/automerge-decide.mjs';
 
 const HOOKS_DIR = dirname(fileURLToPath(import.meta.url));
 const gate = createRequire(import.meta.url)('./automerge-gate.js');
@@ -132,9 +133,10 @@ const REQUIRED = '[{"name":"test"}]';
 
 /**
  * Env with a fake `gh` first on PATH. `gh pr view` prints `view` (default: the repo's HEAD with base main);
- * `gh pr checks` prints `stdout`/`stderr` and exits with `exit`. `argv('view' | 'checks')` returns what it received.
+ * `gh api` prints `api`; `gh pr checks` prints `stdout`/`stderr` and exits with `exit`.
+ * `argv('view' | 'checks' | 'api')` returns what it received.
  */
-function fakeGh(t, root, { view, viewExit = 0, stdout = REQUIRED, stderr = '', exit = 0, sleep = 0 } = {}) {
+function fakeGh(t, root, { view, viewExit = 0, api = '', stdout = REQUIRED, stderr = '', exit = 0, sleep = 0 } = {}) {
   const bin = tempDir(t);
   const record = join(bin, 'argv');
   writeFileSync(
@@ -143,6 +145,7 @@ function fakeGh(t, root, { view, viewExit = 0, stdout = REQUIRED, stderr = '', e
       '#!/bin/sh',
       // exec: 타임아웃이 보낸 신호를 sleep 이 직접 받게 해 파이프가 늦게 닫히지 않게 한다
       'if [ "$FAKE_GH_SLEEP" != 0 ]; then exec sleep "$FAKE_GH_SLEEP"; fi',
+      'if [ "$1" = api ]; then printf \'%s\\n\' "$@" > "$FAKE_GH_ARGV.api"; printf \'%s\' "$FAKE_GH_API"; exit 0; fi',
       'printf \'%s\\n\' "$@" > "$FAKE_GH_ARGV.$2"',
       'if [ "$2" = view ]; then printf \'%s\' "$FAKE_GH_VIEW"; exit "$FAKE_GH_VIEW_EXIT"; fi',
       'printf \'%s\' "$FAKE_GH_STDOUT"',
@@ -158,6 +161,7 @@ function fakeGh(t, root, { view, viewExit = 0, stdout = REQUIRED, stderr = '', e
     FAKE_GH_ARGV: record,
     FAKE_GH_VIEW: view ?? JSON.stringify({ headRefOid: head, baseRefName: 'main' }),
     FAKE_GH_VIEW_EXIT: String(viewExit),
+    FAKE_GH_API: api,
     FAKE_GH_STDOUT: stdout,
     FAKE_GH_STDERR: stderr,
     FAKE_GH_EXIT: String(exit),
@@ -611,4 +615,106 @@ test('gate fails closed when the base policy is malformed beyond opt-in', (t) =>
   const { status, stderr } = runGate('gh pr merge --auto', root, fakeGh(t, root).env);
   assert.equal(status, 2);
   assert.match(stderr, /gate check failed/);
+});
+
+const REPO_POLICY = { enabled: true, method: 'merge', deny_paths: ['hooks/**', '.github/**', 'scripts/**'] };
+const DECIDE_SCRIPT = join(HOOKS_DIR, '..', 'scripts', 'automerge-decide.mjs');
+
+test('decide refuses without an opted-in policy, for drafts, and without changed files', () => {
+  const files = ['README.md'];
+  assert.deepEqual(decide({ policy: null, isDraft: false, files }), {
+    eligible: false,
+    reason: 'repository has not opted in',
+  });
+  assert.equal(decide({ policy: { ...REPO_POLICY, enabled: false }, isDraft: false, files }).reason,
+    'repository has not opted in');
+  assert.equal(decide({ policy: REPO_POLICY, isDraft: true, files }).reason, 'pull request is a draft');
+  assert.equal(decide({ policy: REPO_POLICY, isDraft: false, files: [] }).reason, 'changed files could not be read');
+  assert.equal(decide({ policy: REPO_POLICY, isDraft: false, files: null }).eligible, false);
+});
+
+test('decide refuses changes to denied paths and to the policy file itself', () => {
+  for (const file of ['hooks/x.js', '.github/workflows/a.yml', 'scripts/a.mjs', '.Ruccess/AutoMerge.json']) {
+    const result = decide({ policy: REPO_POLICY, isDraft: false, files: ['README.md', file] });
+    assert.equal(result.eligible, false, file);
+    assert.equal(result.reason, `touches paths that require human review: ${file}`);
+  }
+});
+
+test('decide fails closed on a malformed or unsupported deny_paths policy', () => {
+  for (const denyPaths of [['hooks/?.js'], ['{a,b}/**'], 'hooks/**', [1]]) {
+    const result = decide({ policy: { enabled: true, deny_paths: denyPaths }, isDraft: false, files: ['README.md'] });
+    assert.equal(result.eligible, false, JSON.stringify(denyPaths));
+    assert.match(result.reason, /policy is invalid: .*deny_paths/);
+  }
+});
+
+test('decide allows changes outside denied paths', () => {
+  assert.deepEqual(decide({ policy: REPO_POLICY, isDraft: false, files: ['evals/a.md', 'README.md'] }), {
+    eligible: true,
+    reason: 'eligible',
+  });
+});
+
+test('mergeMethod keeps a supported method and falls back to merge', () => {
+  for (const method of ['merge', 'squash', 'rebase']) assert.equal(mergeMethod({ method }), method);
+  for (const policy of [{ method: 'fast-forward' }, {}, null]) assert.equal(mergeMethod(policy), 'merge');
+});
+
+/**
+ * Run automerge-decide in a temp dir holding the policy. The fake gh reports a ready PR whose changed files are
+ * `rows` (REST API TSV lines, `filename\tprevious_filename`), with `autoMergeRequest` and `checks`.
+ */
+function runDecide(t, { rows, autoMergeRequest = null, checks = REQUIRED }) {
+  const cwd = tempDir(t);
+  mkdirSync(join(cwd, '.ruccess'));
+  writeFileSync(join(cwd, '.ruccess', 'automerge.json'), JSON.stringify(REPO_POLICY));
+  const view = JSON.stringify({ isDraft: false, autoMergeRequest, changedFiles: rows.length });
+  const gh = fakeGh(t, null, { view, api: rows.map((row) => `${row}\n`).join(''), stdout: checks });
+  const proc = spawnSync(process.execPath, [DECIDE_SCRIPT], {
+    cwd,
+    encoding: 'utf8',
+    env: {
+      ...process.env,
+      ...gh.env,
+      PR_NUMBER: '7',
+      GITHUB_REPOSITORY: 'o/r',
+      AUTOMERGE_CHECK_ATTEMPTS: '1',
+      AUTOMERGE_CHECK_INTERVAL_MS: '1',
+      GITHUB_STEP_SUMMARY: '',
+    },
+  });
+  const merge = existsSync(`${gh.env.FAKE_GH_ARGV}.merge`) ? gh.argv('merge') : null;
+  return { status: proc.status, stdout: proc.stdout, stderr: proc.stderr, merge, api: gh.argv('api') };
+}
+
+test('automerge-decide enables auto-merge for an eligible PR with a required check', (t) => {
+  const { status, stdout, stderr, merge, api } = runDecide(t, { rows: ['evals/a.md\t'] });
+  assert.equal(status, 0, stderr);
+  assert.deepEqual(api.slice(0, 3), ['api', '--paginate', 'repos/o/r/pulls/7/files']);
+  assert.deepEqual(merge, ['pr', 'merge', '7', '--auto', '--merge']);
+  assert.match(stdout, /PR #7: auto-merge enabled \(merge\)/);
+});
+
+test('automerge-decide disables existing auto-merge when a denied path is touched', (t) => {
+  const autoMergeRequest = { enabledAt: '2026-11-24T00:00:00Z' };
+  const { status, stdout, stderr, merge } = runDecide(t, { rows: ['hooks/x.js\t'], autoMergeRequest });
+  assert.equal(status, 0, stderr);
+  assert.deepEqual(merge, ['pr', 'merge', '7', '--disable-auto']);
+  assert.ok(!merge.includes('--auto'));
+  assert.match(stdout, /auto-merge not enabled — touches paths that require human review: hooks\/x\.js/);
+});
+
+test('automerge-decide leaves auto-merge off when no required check is reported', (t) => {
+  const { status, stdout, stderr, merge } = runDecide(t, { rows: ['evals/a.md\t'], checks: '[]' });
+  assert.equal(status, 0, stderr);
+  assert.equal(merge, null);
+  assert.match(stdout, /no required check found; auto-merge would merge immediately/);
+});
+
+test('automerge-decide refuses a rename that moves a file out of a denied path', (t) => {
+  const { status, stdout, stderr, merge } = runDecide(t, { rows: ['README.md\t', 'docs/x.js\thooks/x.js'] });
+  assert.equal(status, 0, stderr);
+  assert.equal(merge, null);
+  assert.match(stdout, /touches paths that require human review: hooks\/x\.js/);
 });
