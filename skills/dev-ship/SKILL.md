@@ -46,7 +46,21 @@ Follow the repository template and branch/commit/PR rules. Scale the body to the
 
 Report the proposed title, concise body summary, and base before publishing; this is not an extra approval request when PR creation is already authorized. Create with `gh pr create --draft` on GitHub or the platform's draft equivalent. Attach the created PR to the task when the environment provides that capability.
 
+## Merge decision
+The PR stays a draft unless the repository has opted into auto-merge: a policy already merged on the base branch (`.ruccess/automerge.json` with `"enabled": true`) or an equivalent documented repository rule. In such a repository, a request to open a PR includes carrying out its merge rule; do not wait for a separate go-ahead. Never enable auto-merge in a repository that has not opted in.
+
+Enable auto-merge only when every condition holds:
+- **Two-way door**: reverting the merge fully undoes the change. Effects that outlive a revert make it one-way even when no restricted path is touched: messages or payments sent, data deleted or rewritten, a removed public contract, a published artifact. Trace what merging triggers (deploy hooks, jobs, migrations) before deciding.
+- **Policy**: no changed path matches the policy's deny list, and the policy file itself is unchanged.
+- **Platform gate**: the base branch enforces at least one required check (`gh pr checks --required` lists one, or the branch rules show it). Where nothing is required, enabling auto-merge merges at once, before any check finishes; treat that repository as not ready for auto-merge.
+- **Evidence**: local verification passes, every requirement has named proof, the changed behavior was observed through its real entry point rather than inferred from passing tests, and no Blocker or Should-fix remains.
+
+When all hold, mark the PR ready and enable auto-merge with the repository's method (`gh pr ready`, then `gh pr merge --auto`). The platform's required checks perform the merge; never merge directly, bypass protections, or edit the policy to qualify.
+
+Otherwise keep the draft, stop, and tell the user which condition failed and what a human must confirm. Say it in the closing report; a note in the PR body alone protects nothing if nobody reads it.
+
 ## Never
+- Merge directly, or enable auto-merge without the repository's opt-in or for a one-way change
 - Create a PR with failing verification — "CI will catch it" is not a reason
 - Skip requirements review because a plan file is absent, or bypass repository-required review
 - Default to a non-draft PR
@@ -54,10 +68,10 @@ Report the proposed title, concise body summary, and base before publishing; thi
 - Mark a traceability row satisfied without naming the code or test that proves it
 
 ## Closing report
-Lead with the Draft PR URL or the concrete blocker. Briefly explain changed behavior, verification evidence, and remaining gaps or risks. Name the command or artifact supporting a claim, and the reason for a material omission. Separate standards findings from requirements gaps when either remains. Do not print empty per-gate status rows or file/line counts unless requested or useful to explain impact.
+Lead with the PR URL or the concrete blocker, then the merge decision: auto-merge enabled, or the condition that kept the PR a draft. Briefly explain changed behavior, verification evidence, and remaining gaps or risks. Name the command or artifact supporting a claim, and the reason for a material omission. Separate standards findings from requirements gaps when either remains. Do not print empty per-gate status rows or file/line counts unless requested or useful to explain impact.
 
 ## Done when
-The authorized Draft PR exists with accurate evidence, or a concrete blocker and the work already completed are reported. No required check, source requirement, or repository rule has been silently dropped.
+The authorized Draft PR exists with accurate evidence and its merge decision is carried out and reported, or a concrete blocker and the work already completed are reported. No required check, source requirement, or repository rule has been silently dropped.
 
 ---
-Selected adaptations of Matt Pocock's [code-review](https://github.com/mattpocock/skills/blob/49dd158d1076134a641b33efb035946536778336/skills/engineering/code-review/SKILL.md) and [pr](https://github.com/mattpocock/skills/blob/49dd158d1076134a641b33efb035946536778336/skills/engineering/pr/SKILL.md); workflow name and repository-specific delivery rules retained. Review severity and finding verification distilled from t3dotgg/tstack `sol-loop`, obra/superpowers `subagent-driven-development` reviewer rubric, and addyosmani/agent-skills `code-review-and-quality` (all MIT).
+Selected adaptations of Matt Pocock's [code-review](https://github.com/mattpocock/skills/blob/49dd158d1076134a641b33efb035946536778336/skills/engineering/code-review/SKILL.md) and [pr](https://github.com/mattpocock/skills/blob/49dd158d1076134a641b33efb035946536778336/skills/engineering/pr/SKILL.md); workflow name and repository-specific delivery rules retained. Review severity and finding verification distilled from t3dotgg/tstack `sol-loop`, obra/superpowers `subagent-driven-development` reviewer rubric, and addyosmani/agent-skills `code-review-and-quality` (all MIT). The merge decision applies ideas from two conference talks, not their code: Matt Pocock's one-way/two-way door triage ("Fixing the PR Bottleneck") and Lauren Tan's enforce-in-checks-before-prose ordering ("All Code Is Slop").
