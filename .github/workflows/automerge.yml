@@ -1,0 +1,31 @@
+name: automerge
+
+# pull_request_target runs the workflow and script from the base branch, so a PR cannot change the
+# decision logic to enable its own auto-merge. The PR's code is never checked out or run here:
+# actions/checkout has no ref, so it fetches the base branch.
+on:
+  pull_request_target:
+    types: [opened, reopened, ready_for_review, converted_to_draft, synchronize]
+    branches: [main]
+
+jobs:
+  automerge:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      checks: read
+      statuses: read
+    concurrency:
+      group: automerge-${{ github.event.pull_request.number }}
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: node scripts/automerge-decide.mjs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
