@@ -1,0 +1,5 @@
+{
+  "enabled": true,
+  "method": "squash",
+  "deny_paths": ["migrations/**", "src/auth/**"]
+}
